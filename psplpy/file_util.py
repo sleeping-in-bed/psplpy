@@ -60,7 +60,7 @@ def get_current_time_as_file_name(ext: str, format_str: str = None) -> str:
             file_name = f'{file_name}{ext}'
         else:
             file_name = f'{file_name}.{ext}'
-    return file_name
+    return rename_duplicate_file(file_name)
 
 
 def get_file_size(file_path, ignore_not_exist: bool = False):

@@ -9,14 +9,14 @@ def progress_bar(progress: float, bar_length: int = 40, finished_chr: str = '=',
         progress = 1
     filled_length = int(progress * bar_length)
     bar = finished_chr * filled_length + unfinished_chr * (bar_length - filled_length)
-    # \r 表示回到行首
+    # \r means go back to the beginning of the line
     sys.stdout.write(
         f'\r{both_sides_border_chr_tuple[0]}{bar}{both_sides_border_chr_tuple[1]} {progress * 100:.{progress_precision}f}%')
     sys.stdout.flush()
 
 
 def limited_input(allowed_list: [list | tuple | set], print_str: str = '',
-                  tip: str = 'Input error, please re-enter.') -> None:
+                  tip: str = 'Input error, please re-enter.') -> str:
     while True:
         input_str = input(print_str)
         if input_str in allowed_list:

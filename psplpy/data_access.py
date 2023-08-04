@@ -9,7 +9,7 @@ import zlib
 from typing import Dict, List, Tuple, Any
 
 from file_util import create_file
-from mylib.utils_func import progress_bar
+from interact_util import progress_bar
 
 
 def check_int_or_float(input_str: str) -> type:
