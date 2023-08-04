@@ -14,11 +14,6 @@ classifiers = [
     "Operating System :: OS Independent",
 ]
 dependencies = [
-    "paddlepaddle==2.5.1",     # see https://www.paddlepaddle.org.cn/
-    "torch==1.13.1+cpu",       # see https://pytorch.org/
-    "torchvision==0.14.1+cpu", # see https://pytorch.org/
-    "torchaudio==0.13.1",      # see https://pytorch.org/
-
     "ddddocr==1.4.7",
     "easyocr==1.7.0",
     "paddleocr==2.6.1.3",
