@@ -113,3 +113,7 @@ def capture_screen_with_adb(device: str = None, output_path: str = file_util.ren
     if show_time:
         print(f'transmit time: {time.time() - t_start}')
     return output_path
+
+
+if __name__ == '__main__':
+    pass
