@@ -27,6 +27,7 @@ class PyOcr:
         self.detect_module = detect_module.casefold()
         self.debug = debug
         self.debug_dir = debug_dir
+        file_util.create_dir(self.debug_dir)
         self.logger = logger
         if not log_path:
             self.log_path = os.path.join(self.debug_dir, 'pyocr.log')
@@ -141,3 +142,7 @@ class PyOcr:
         return result
 
 
+if __name__ == '__main__':
+    ocr = PyOcr(debug=True, use_gpu=True)
+    l = ocr.get_text_info_list()
+    print(l)

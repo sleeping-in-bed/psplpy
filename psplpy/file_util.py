@@ -21,8 +21,6 @@ def create_file(file_path: str) -> None:
 
 def create_dir(dir: str) -> None:
     """if directory doesn't exist, then create it"""
-    if not os.path.isdir(dir):
-        dir = os.path.dirname(dir)
     if not os.path.exists(dir):
         os.makedirs(dir)
 
