@@ -1,0 +1,16 @@
+paddlepaddle==2.5.1     # see https://www.paddlepaddle.org.cn/
+torch==1.13.1+cpu       # see https://pytorch.org/
+torchvision==0.14.1+cpu # see https://pytorch.org/
+torchaudio==0.13.1      # see https://pytorch.org/
+
+ddddocr==1.4.7
+easyocr==1.7.0
+paddleocr==2.6.1.3
+
+opencv-python==4.8.0.74
+numpy==1.24.4
+Pillow==9.5.0
+PyAutoGUI==0.9.54
+pynput==1.7.6
+
+

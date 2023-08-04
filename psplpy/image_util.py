@@ -7,7 +7,7 @@ import file_util
 
 
 def four_vertexes_transform_to_ltrb(four_vertexes: [List, Tuple]) -> Tuple:
-    return (*four_vertexes[0]), (*four_vertexes[2])
+    return four_vertexes[0], four_vertexes[2]
 
 
 def ltrb_transform_to_ltwh(region: [List, Tuple]) -> Tuple:
