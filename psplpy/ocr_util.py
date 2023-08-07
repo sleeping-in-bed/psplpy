@@ -2,7 +2,6 @@ import os
 import re
 import time
 from typing import Tuple, List, Any
-
 import pyautogui
 from PIL import Image
 

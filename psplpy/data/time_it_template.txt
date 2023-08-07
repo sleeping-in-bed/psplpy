@@ -1,0 +1,29 @@
+from psplpy import time_it
+
+
+# more example naming rules: setup / main_statement + positive integer
+def setup1():
+
+
+def setup2():
+
+
+def main_statement1():
+
+
+def main_statement2():
+
+
+
+if __name__ == '__main__':
+    # if test_num=0, will automatically test the longest example for about 1 second
+    test_num = 0
+    test_time_dic, test_time_dic_str, test_time_dic_ratio = time_it.time_it(__file__, test_num)
+
+    print('# (setup_id, main_id): time_usage(seconds, line1) / ratio(line2)')
+    print(test_time_dic_str)
+    print(test_time_dic_ratio)
+
+
+
+

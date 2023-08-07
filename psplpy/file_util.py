@@ -1,7 +1,16 @@
 import datetime
+import hashlib
 import os
 import re
 import shutil
+
+from interact_util import progress_bar
+
+
+def read_text_in_file(file_path: str, encoding: str = 'utf-8'):
+    with open(file_path, encoding=encoding) as file:
+        content = file.read()
+    return content
 
 
 def get_this_dir_abspath(__file__) -> str:
@@ -72,6 +81,45 @@ def get_file_size(file_path, ignore_not_exist: bool = False):
             return 0
         else:
             raise FileNotFoundError
+
+
+class MyHash:
+    md5 = 'md5'
+    sha1 = 'sha1'
+    sha256 = 'sha256'
+    sha512 = 'sha512'
+    blake2b = 'blake2b'
+    blake2s = 'blake2s'
+    hash_algorithms_list = [md5, sha1, sha256, sha512, blake2b, blake2s]
+
+    def __init__(self, hash_algorithm: str):
+        if type(hash_algorithm) == str and hash_algorithm in self.hash_algorithms_list:
+            self.hash_algorithm = eval(f'hashlib.{hash_algorithm}()')
+        else:
+            raise ValueError(f'{hash_algorithm} no support')
+
+    def calculate_hash(self, file_path: str, block_size: int = 1024 * 1024 * 10,
+                       show_rate_of_progress: bool = False):
+        if show_rate_of_progress:
+            file_size = get_file_size(file_path)
+        with open(file_path, "rb") as f:
+            if block_size:
+                if show_rate_of_progress:
+                    count = 0
+                while True:
+                    data = f.read(block_size)
+                    if not data:
+                        break
+                    self.hash_algorithm.update(data)
+                    if show_rate_of_progress:
+                        count += block_size
+                        progress_bar(progress=count / file_size)
+                if show_rate_of_progress:
+                    print()
+            else:
+                data = f.read()
+                self.hash_algorithm.update(data)
+        return self.hash_algorithm.hexdigest()
 
 
 if __name__ == '__main__':
