@@ -122,5 +122,10 @@ class MyHash:
         return self.hash_algorithm.hexdigest()
 
 
+def get_current_user_dir() -> str:
+    user_folder = os.path.expanduser('~')
+    return user_folder
+
+
 if __name__ == '__main__':
     pass

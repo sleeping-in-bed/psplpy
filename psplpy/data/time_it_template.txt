@@ -23,7 +23,3 @@ if __name__ == '__main__':
     print('# (setup_id, main_id): time_usage(seconds, line1) / ratio(line2)')
     print(test_time_dic_str)
     print(test_time_dic_ratio)
-
-
-
-
