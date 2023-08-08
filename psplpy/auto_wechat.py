@@ -1,10 +1,45 @@
 import datetime
+import os
 import random
 import re
 import time
 
 import uiautomation as auto
-# auto.uiautomation.DEBUG_SEARCH_TIME = True
+import file_util
+
+debug = auto.uiautomation.DEBUG_SEARCH_TIME
+
+
+def set_debug(is_debug: bool) -> bool:
+    global debug
+    debug = is_debug
+    return debug
+
+
+def get_components_image(top_window, save_dir: str, control_type: str = None, start_interval: float = 5):
+    def get_image(control_type):
+        count = 1
+        while True:
+            command = f'top.{control_type}(foundIndex={count})'
+            c = eval(command)
+            if c.Exists(0.1):
+                print(c)
+                path = os.path.join(save_dir, control_type + str(count) + '.png')
+                print(path)
+                c.CaptureToImage(path)
+            else:
+                break
+            count += 1
+
+    print(f'{start_interval}s后开始，请切换到目标窗口')
+    time.sleep(start_interval)
+    file_util.create_dir(save_dir)
+    top = top_window
+    if not control_type:
+        for control_type in auto.ControlTypeNames:
+            get_image(control_type)
+    else:
+        get_image(control_type)
 
 
 def find_longest_common_interval(list1, list2):
@@ -56,20 +91,32 @@ class AutoWechat:
         new_interval, old_interval = find_longest_common_interval(new_message_list, old_message_list)
         return new_message_list[new_interval[1]: len(new_message_list)]
 
-    def send_sticker(self, sticker_class: str = 'All Stickers', sticker_id: int = 1) -> None:
+    def _send_sticker(self, sticker_class: str = All_Stickers, sticker_id: int = 1,
+                      sticker_name: str = 'Laugh') -> None:
         sticker = self.wcWin.ToolBarControl(Depth=12).ButtonControl(searchDepth=1, Name='Sticker')
         sticker.Click()
         stickerClass = self.wcWin.CheckBoxControl(Depth=5, Name=sticker_class)
         stickerClass.Click()
-        certain_sticker = self.wcWin.ListItemControl(Depth=6, foundIndex=sticker_id)
+        if sticker_class == AutoWechat.All_Stickers:
+            certain_sticker = self.wcWin.ListItemControl(Depth=5, Name=sticker_name)
+        elif sticker_class == AutoWechat.Custom_Stickers:
+            certain_sticker = self.wcWin.ListItemControl(Depth=6, foundIndex=sticker_id)
+        else:
+            raise ValueError
         certain_sticker.Click()
+
+    def select_all_sticker(self, sticker_name: str = 'Laugh') -> None:
+        self._send_sticker(AutoWechat.All_Stickers, sticker_name=sticker_name)
+
+    def send_custom_sticker(self, sticker_id: int = 1) -> None:
+        self._send_sticker(AutoWechat.Custom_Stickers, sticker_id)
 
     def send_message(self, message: str) -> None:
         entry = self.wcWin.EditControl()
         entry.SendKeys(message)
         auto.SendKeys('{Enter}')
 
-    def get_chat_sticker(self, sticker_name: str = '[Sticker]') -> auto.PaneControl:
+    def get_chat_sticker(self, sticker_name: str = Sticker_mes) -> auto.PaneControl:
         chat_sticker = self.wcWin.ListItemControl(Depth=12, Name=sticker_name).PaneControl().PaneControl(
             foundIndex=2).PaneControl().PaneControl().PaneControl().PaneControl(foundIndex=2).PaneControl()
         return chat_sticker
@@ -116,7 +163,7 @@ if __name__ == '__main__':
                 if new_message_list or not has_send_first_message:
                     print(new_message_list)
                     if send_count != 5:
-                        wechat.send_sticker(AutoWechat.Custom_Stickers, random.randint(1, 12))
+                        wechat.send_custom_sticker(random.randint(1, 12))
                         send_count += 1
                         has_send_first_message = True
                         chat_history2.append(AutoWechat.Sticker_mes)
