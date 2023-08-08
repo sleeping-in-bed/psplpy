@@ -52,7 +52,8 @@ def generate_time_it_template(file_dir: str = '', file_name: str = '') -> str:
     if not file_name:
         file_name = 'time_test.py'
     file_path = file_util.rename_duplicate_file(os.path.join(file_dir, file_name))
-    with open(r'data/time_it_template.txt', encoding='utf-8') as f:
+    with open(os.path.join(file_util.get_this_dir_abspath(__file__),
+                           r'data/time_it_template.txt'), encoding='utf-8') as f:
         template = f.read()
     with open(file_path, 'w', encoding='utf-8') as f:
         f.write(template)

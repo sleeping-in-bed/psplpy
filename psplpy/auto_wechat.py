@@ -3,6 +3,7 @@ import os
 import random
 import re
 import time
+from typing import Tuple
 
 import uiautomation as auto
 import file_util
@@ -16,8 +17,8 @@ def set_debug(is_debug: bool) -> bool:
     return debug
 
 
-def get_components_image(top_window, save_dir: str, control_type: str = None, start_interval: float = 5):
-    def get_image(control_type):
+def get_components_image(top_window, save_dir: str, control_type: str = None, start_interval: float = 5) -> None:
+    def get_image(control_type: str) -> None:
         count = 1
         while True:
             command = f'top.{control_type}(foundIndex={count})'
@@ -42,7 +43,7 @@ def get_components_image(top_window, save_dir: str, control_type: str = None, st
         get_image(control_type)
 
 
-def find_longest_common_interval(list1, list2):
+def find_longest_common_interval(list1: list, list2: list) -> Tuple[Tuple, Tuple] | Tuple[None, None]:
     """return start and end indexes tuple with half-open interval"""
     max_length = 0
     max_interval1 = None
