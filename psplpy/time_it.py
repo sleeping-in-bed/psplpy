@@ -12,12 +12,27 @@ main_func_prefix = 'main_statement'
 
 
 def get_path_directly_call() -> str:
-    """get the file path to call a function that uses this function directly"""
+    """If a function uses it,
+       its return value will be the path to the file where the code calling that function is located.
+       The function that uses it must be called, otherwise it will return an empty string.
+       for example:
+            a.py
+                def aa():
+                    return this_func()
+            b.py
+                def bb():
+                    return = aa() -> return the path of b.py
+            c.py
+                p = bb() -> p is the path of b.py
+    """
     # get call stack infomation
     stack = inspect.stack()
     # the first element is stack() function, the second element is this function,
     # and the third element is a function that calls this function
-    caller_filename = stack[2].filename
+    try:
+        caller_filename = stack[2].filename
+    except IndexError:
+        return ''
     return caller_filename
 
 
@@ -128,3 +143,7 @@ def time_it(__file__, test_num: int = 0, time_significant_digits: int = 5) -> Tu
         raise ValueError(f"Please use {__name__}.{generate_time_it_template.__name__}() to generate a test template "
                          f"file first, or add some {main_func_prefix} test examples.")
     return _start_test(setup_dict, main_dict, test_num, time_significant_digits)
+
+
+if __name__ == '__main__':
+    pass

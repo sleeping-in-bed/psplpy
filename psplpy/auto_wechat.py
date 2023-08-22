@@ -72,6 +72,7 @@ class AutoWechat:
               r'(?:\d{1,2}:\d{2} (?:AM|PM))|' \
               r'(?:Yesterday \d{1,2}:\d{2} (?:AM|PM))|' \
               r'(?:\d{1,2}-\d{1,2}-\d{2} \d{1,2}:\d{2} (?:AM|PM))'
+    system_mes = ['Below are new messages']
     Sticker_mes = '[Sticker]'
     Custom_Stickers = 'Custom Stickers'
     All_Stickers = 'All Stickers'
@@ -142,6 +143,7 @@ class AutoWechat:
                 break
         # 获取的消息中会包含发送的时间信息，去掉这些时间信息，防止对是否有新消息发生误判
         chat_history_list = [message for message in chat_history_list if not AutoWechat._match_time_message(message)]
+        chat_history_list = [message for message in chat_history_list if message not in AutoWechat.system_mes]
         return chat_history_list
 
 

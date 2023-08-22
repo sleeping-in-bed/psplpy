@@ -49,7 +49,7 @@ def rename_duplicate_file(file_path: str) -> str:
 
 def copy_file(src_path: str, dst_path: str) -> str:
     """copy file, if dst dir doesn't exist, create it, if dst file has existed, rename it"""
-    create_dir(dst_path)
+    create_dir(os.path.dirname(dst_path))
     # if dst file has existed, rename it
     dst_path = rename_duplicate_file(dst_path)
     # copy

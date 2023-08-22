@@ -63,11 +63,14 @@ def get_devices_with_adb() -> dict:
 
 def auto_get_device_name() -> str:
     devices = get_devices_with_adb()
-    if list(devices.values()).count('device') == 1:
+    number_of_devices = list(devices.values()).count('device')
+    if number_of_devices == 1:
         device = [key for key in devices if devices[key] == 'device'][0]
         return device
-    else:
+    elif number_of_devices > 1:
         raise RuntimeError(f'More than one online device: {devices}')
+    else:
+        raise RuntimeError(f'No online device')
 
 
 def click_with_adb(x: int, y: int, device: str = None, show_time: bool = False) -> float:
@@ -113,6 +116,26 @@ def capture_screen_with_adb(device: str = None, output_path: str = file_util.ren
     if show_time:
         print(f'transmit time: {time.time() - t_start}')
     return output_path
+
+
+def _multiple_clicks_by_adb(num: int, point: tuple, device: str, i) -> None:
+    for _ in range(num):
+        click_with_adb(*point, device=device)
+        # print(f'{i}_{_}: {time.time()}')
+
+
+def quick_click_with_adb(num: int, point: tuple, thread: int = 50, device: str = auto_get_device_name(),
+                       start_interval: float = 0, thread_start_interval: float = 0.01) -> None:
+    p_list = []
+    for i in range(thread):
+        p_list.append(multiprocessing.Process(target=_multiple_clicks_by_adb,
+                                              args=(int(num / thread), point, device, i)))
+    time.sleep(start_interval)
+    for p in p_list:
+        p.start()
+        time.sleep(thread_start_interval)
+    for p in p_list:
+        p.join()
 
 
 if __name__ == '__main__':
