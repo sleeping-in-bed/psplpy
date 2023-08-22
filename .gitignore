@@ -1,2 +1,3 @@
 dist/
 psplpy/__pycache__/
+psplpy/debug/

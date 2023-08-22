@@ -2,6 +2,8 @@ import os
 import re
 import time
 from typing import Tuple, List, Any
+
+import numpy as np
 import pyautogui
 from PIL import Image
 
@@ -25,8 +27,9 @@ class PyOcr:
                  logger=other_util.default_logger(), log_path: str = None, use_gpu: bool = False):
         self.detect_module = detect_module.casefold()
         self.debug = debug
-        self.debug_dir = debug_dir
-        file_util.create_dir(self.debug_dir)
+        if debug:
+            self.debug_dir = debug_dir
+            file_util.create_dir(self.debug_dir)
         self.logger = logger
         if not log_path:
             self.log_path = os.path.join(self.debug_dir, 'pyocr.log')
@@ -54,6 +57,15 @@ class PyOcr:
         if self.debug:
             self.logger.debug('Model loading time：' + str(time.monotonic() - t1))
 
+    @staticmethod
+    def transform_image(image: Any):
+        if isinstance(image, (str, np.ndarray, bytes)):
+            return image
+        elif isinstance(image, (list, tuple)):
+            return np.array(pyautogui.screenshot(region=image_util.ltrb_transform_to_ltwh(image)))
+        else:
+            raise TypeError
+
     def get_text_info_list(self, image: Any = None, ignore_case: bool = False,
                            keep_only_en_and_num: bool = False, image_enlarge: float = 1) -> Tuple[
         Tuple[Tuple[float, float], Tuple[float, float], Tuple[float, float], Tuple[float, float]], str, float]:
@@ -61,7 +73,7 @@ class PyOcr:
             t1 = time.monotonic()
         if not image:
             image = 0, 0, *pyautogui.size()
-        image_array = image_util.convert_image_to_ndarray(image)
+        image_array = PyOcr.transform_image(image)
         if image_enlarge != 1:
             image_array = image_util.enlarge_img(image_array, image_enlarge)
 
