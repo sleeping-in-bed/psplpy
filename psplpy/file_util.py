@@ -4,7 +4,8 @@ import os
 import re
 import shutil
 
-from interact_util import progress_bar
+import interact_util
+import other_util
 
 
 def read_text_in_file(file_path: str, encoding: str = 'utf-8'):
@@ -113,7 +114,7 @@ class MyHash:
                     self.hash_algorithm.update(data)
                     if show_rate_of_progress:
                         count += block_size
-                        progress_bar(progress=count / file_size)
+                        interact_util.progress_bar(progress=count / file_size)
                 if show_rate_of_progress:
                     print()
             else:
@@ -125,6 +126,10 @@ class MyHash:
 def get_current_user_dir() -> str:
     user_folder = os.path.expanduser('~')
     return user_folder
+
+
+def create_hard_link(new_file: str, original_file: str) -> str:
+    return other_util.run_command(f'mklink /h {new_file} {original_file}')
 
 
 if __name__ == '__main__':

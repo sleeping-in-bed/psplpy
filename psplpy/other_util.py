@@ -1,6 +1,7 @@
 import json
 import logging
 import os
+import subprocess
 import sys
 import traceback
 
@@ -50,6 +51,17 @@ def default_logger(level=logging.DEBUG):
     # add the handlers to the logger
     logger.addHandler(console_handler)
     return logger
+
+
+def run_command(command: str) -> str:
+    # using subprocess.run() runs command and captures the output
+    result = subprocess.run(command, capture_output=True, text=True, shell=True)
+    # determine whether the code has executed successfully
+    if result.returncode == 0:
+        # successfully, return the result
+        return result.stdout
+    else:
+        raise RuntimeError(result.stderr)
 
 
 def run_py(script_path: str, python_path: str = 'python'):

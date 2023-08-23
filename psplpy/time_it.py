@@ -1,5 +1,6 @@
 import ast
 import inspect
+import math
 import os
 import re
 import timeit
@@ -115,7 +116,7 @@ def _start_test(setup_dict, main_dict, test_num, time_significant_digits) -> Tup
                 test_num *= 10
             else:
                 break
-        test_num = int(1 / longest_time) * test_num
+        test_num = math.ceil(1 / longest_time) * test_num
     else:
         test_num = int(test_num)
 
