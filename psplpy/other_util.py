@@ -3,6 +3,7 @@ import logging
 import os
 import subprocess
 import sys
+import time
 import traceback
 
 
@@ -53,15 +54,35 @@ def default_logger(level=logging.DEBUG):
     return logger
 
 
-def run_command(command: str) -> str:
-    # using subprocess.run() runs command and captures the output
-    result = subprocess.run(command, capture_output=True, text=True, shell=True)
-    # determine whether the code has executed successfully
-    if result.returncode == 0:
-        # successfully, return the result
-        return result.stdout
+def run_command(command: str, show_output: bool = False, print_interval: float = 0.01) -> str:
+    # 运行命令，并将标准输出捕获
+    process = subprocess.Popen(command, shell=True, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True,
+                               bufsize=1, encoding='utf-8')
+    output_list = []
+    # 实时输出命令的输出
+    if show_output:
+        while True:
+            output_line = process.stdout.readline()
+            if output_line == '' and process.poll() is not None:
+                break
+            elif output_line:
+                output_list.append(output_line)
+                print(output_line.rstrip('\n'))
+            else:
+                time.sleep(print_interval)
+
+    # 等待命令运行完毕
+    process.wait()
+    # 获取完整的命令输出
+    if show_output:
+        command_output = ''.join(output_list)
     else:
-        raise RuntimeError(result.stderr)
+        command_output = ''.join(process.stdout.readlines())
+    if process.returncode == 0:
+        # 返回命令输出
+        return command_output
+    else:
+        raise ChildProcessError(command_output)
 
 
 def run_py(script_path: str, python_path: str = 'python'):
@@ -138,4 +159,5 @@ def run_py_advanced(script_path: str, python_path: str = 'python'):
 
 
 if __name__ == '__main__':
-    pass
+    import auto_wechat
+    auto_wechat.run_automation()
