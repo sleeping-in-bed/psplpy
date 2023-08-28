@@ -1,3 +1,4 @@
 dist/
 psplpy/__pycache__/
 psplpy/debug/
+psplpy/beta/

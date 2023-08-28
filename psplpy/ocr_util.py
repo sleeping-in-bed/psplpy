@@ -27,8 +27,8 @@ class PyOcr:
                  logger=other_util.default_logger(), log_path: str = None, use_gpu: bool = False):
         self.detect_module = detect_module.casefold()
         self.debug = debug
+        self.debug_dir = debug_dir
         if debug:
-            self.debug_dir = debug_dir
             file_util.create_dir(self.debug_dir)
         self.logger = logger
         if not log_path:

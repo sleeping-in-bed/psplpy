@@ -1,12 +1,13 @@
 import os
 import shutil
+import sys
 
 # option vars
 directly_upload_to_pypi = True
 ##
 
-python_dir = input()
-python_path = os.path.join(python_dir, "python")
+python_path = sys.executable
+python_dir = os.path.dirname(python_path)
 
 username = '__token__'
 passwd_test = input()

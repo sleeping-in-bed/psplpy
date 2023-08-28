@@ -6,24 +6,34 @@ from PIL import Image, ImageDraw
 import file_util
 
 
-def four_vertexes_transform_to_ltrb(four_vertexes: [List, Tuple]) -> Tuple:
+def get_box_center(region: Tuple) -> Tuple:
+    region = trans_to_ltwh(region)
+    return region[0] + region[2] * 0.5, region[1] + region[3] * 0.5
+
+
+def trans_to_ltwh(region: Tuple) -> Tuple:
+    if len(region) == 4:
+        if len(region[0]) == 2:
+            return four_vertexes_transform_to_ltwh(region)
+        elif isinstance(region[0], int):
+            return region
+    elif len(region) == 2:
+        """convert ((left, top), (right, bottom)) to (left, top, width, height)"""
+        if len(region[0]) == 2:
+            return *region[0], region[1][0] - region[0][0], region[1][1] - region[0][1]
+    raise ValueError(f'No match region type: {region}')
+
+
+def four_vertexes_transform_to_ltrb(four_vertexes: Tuple) -> Tuple:
     return four_vertexes[0], four_vertexes[2]
 
 
-def ltrb_transform_to_ltwh(region: [List, Tuple]) -> Tuple:
-    """convert ((left, top), (right, bottom)) to (left, top, width, height)"""
-    if len(region) == 4:
-        return region
-    elif len(region) == 2:
-        if len(region[0]) == 2 and len(region[1]) == 2:
-            return *region[0], region[1][0] - region[0][0], region[1][1] - region[0][1]
-        else:
-            raise ValueError('Wrong length of region')
-    raise ValueError('Wrong length of region')
+def four_vertexes_transform_to_ltwh(four_vertexes: Tuple) -> Tuple:
+    return trans_to_ltwh(four_vertexes_transform_to_ltrb(four_vertexes))
 
 
-def ltwh_transform_to_ltrb(region: [List, Tuple]) -> Tuple:
-    """convert (left, top, width, height) to ((left, top), (right, bottom))"""
+def ltwh_transform_to_ltrb(region: Tuple) -> Tuple:
+    """convert (left, top, width, height) to ((le[List, Tuple]ft, top), (right, bottom))"""
     if len(region) == 4:
         return (region[0], region), (region[0] + region[2], region[1] + region[3])
     elif len(region) == 2:
