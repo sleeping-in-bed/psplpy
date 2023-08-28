@@ -1,83 +1,37 @@
 import os
-import shutil
 import sys
 
-# option vars
-directly_upload_to_pypi = True
-##
 
-python_path = sys.executable
-python_dir = os.path.dirname(python_path)
-
-username = '__token__'
-passwd_test = input()
-
-passwd = input()
-
-project_folder = input()
-
-upload_to_pypi_test = False
-
-
-def build():
+def build(python_path: str):
     os.system(f'{python_path} -m build')
 
 
-def upload():
+def upload(python_path: str, username: str, passwd: str, passwd_test: str, upload_to_pypi_test: bool):
     if upload_to_pypi_test:
-        command = f'{python_path} -m twine upload dist/* -u {username} -p {passwd_test}'
-        os.system(f'{command} --repository testpypi')
+        command = f'{python_path} -m twine upload dist/* -u {username} -p {passwd_test} --repository testpypi'
     else:
-        if not directly_upload_to_pypi:
-            choose = input('currently in formal upload mode, to confirm input "1", or input "2" to exit\n')
-            if choose == '1':
-                command = f'{python_path} -m twine upload dist/* -u {username} -p {passwd}'
-                os.system(command)
-            elif choose == '2':
-                pass
-            else:
-                raise ValueError
-        else:
-            command = f'{python_path} -m twine upload dist/* -u {username} -p {passwd}'
-            os.system(command)
+        command = f'{python_path} -m twine upload dist/* -u {username} -p {passwd}'
+    os.system(command)
 
 
-def analyse_options(option):
-    if '-f' in option:
-        global directly_upload_to_pypi
-        directly_upload_to_pypi = False
-
+def upload_pypi_project(project_dir: str, username: str = '__token__', passwd: str = None,
+                        passwd_test: str = None, python_path: str = None,
+                        upload_to_pypi_test: bool = False, just_build: bool = False):
+    if not python_path:
+        python_path = sys.executable
+    os.chdir(project_dir)
+    if just_build:
+        build(python_path)
+    else:
+        build(python_path)
+        upload(python_path, username, passwd, passwd_test, upload_to_pypi_test)
 
 
 if __name__ == '__main__':
-    os.chdir(project_folder)
-    option = input('please input options\n')
-    analyse_options(option)
+    project_dir = r''
+    username = '__token__'
+    passwd = ''
+    passwd_test = ''
 
-    if os.path.exists(r'dist'):
-        choose = input('dist has existed, whether to repack? Input "1" repack and upload, '
-                       'input "2" skip pack and upload, input "3" end program, input "4" just build.\n')
-        if choose == '1':
-            shutil.rmtree('dist')
-            build()
-            upload()
-        elif choose == '2':
-            upload()
-        elif choose == '3':
-            pass
-        elif choose == '4':
-            shutil.rmtree('dist')
-            build()
-        else:
-            raise ValueError
-    else:
-        choose = input('Input "1" pack and upload, input "2" just build, input "3" end program.\n')
-        if choose == '1':
-            build()
-            upload()
-        elif choose == '2':
-            build()
-        elif choose == '3':
-            pass
-        else:
-            raise ValueError
+    upload_pypi_project(project_dir, username, passwd, passwd_test,
+                        python_path=None, upload_to_pypi_test=False, just_build=False)
