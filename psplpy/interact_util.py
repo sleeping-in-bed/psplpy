@@ -1,4 +1,5 @@
 import ctypes
+import re
 import sys
 from unittest.mock import patch
 
@@ -15,15 +16,20 @@ def progress_bar(progress: float, bar_length: int = 40, finished_chr: str = '=',
     sys.stdout.flush()
 
 
-def limited_input(allowed_list: [list | tuple | set], print_str: str = '',
-                  tip: str = 'Input error, please re-enter.') -> str:
+def limited_input(str_list: [list | tuple | set] = None, regex_list: [list | tuple | set] = None, print_str: str = '',
+                  error_tip: str = 'Input error, please re-enter.') -> str:
     while True:
         input_str = input(print_str)
-        if input_str in allowed_list:
-            return input_str
+        if str_list:
+            if input_str in str_list:
+                return input_str
+        elif regex_list:
+            for regex in regex_list:
+                match = re.match(regex, input_str)
+                if match:
+                    return input_str
         else:
-            print(tip)
-
+            print(error_tip)
 
 # define color constants
 foreground_color_dict = {

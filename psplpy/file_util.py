@@ -71,7 +71,7 @@ def get_current_time_as_file_name(ext: str, format_str: str = None) -> str:
     return rename_duplicate_file(file_name)
 
 
-def get_file_size(file_path, ignore_not_exist: bool = False):
+def get_file_size(file_path: str, ignore_not_exist: bool = False) -> int:
     """get file size by bytes"""
     if os.path.isfile(file_path):
         file_info = os.stat(file_path)
@@ -84,7 +84,7 @@ def get_file_size(file_path, ignore_not_exist: bool = False):
             raise FileNotFoundError
 
 
-class MyHash:
+class PyHash:
     md5 = 'md5'
     sha1 = 'sha1'
     sha256 = 'sha256'
@@ -93,29 +93,34 @@ class MyHash:
     blake2s = 'blake2s'
     hash_algorithms_list = [md5, sha1, sha256, sha512, blake2b, blake2s]
 
-    def __init__(self, hash_algorithm: str):
+    def __init__(self, hash_algorithm: str, show_rate_of_progress: bool = False):
         if type(hash_algorithm) == str and hash_algorithm in self.hash_algorithms_list:
             self.hash_algorithm = eval(f'hashlib.{hash_algorithm}()')
         else:
             raise ValueError(f'{hash_algorithm} no support')
+        self.show_rate_of_progress = show_rate_of_progress
 
-    def calculate_hash(self, file_path: str, block_size: int = 1024 * 1024 * 10,
-                       show_rate_of_progress: bool = False):
-        if show_rate_of_progress:
+    def cal_data_hash(self, data: object, encoding: str = 'utf-8') -> str:
+        data = str(data).encode(encoding=encoding)
+        self.hash_algorithm.update(data)
+        return self.hash_algorithm.hexdigest()
+
+    def cal_file_hash(self, file_path: str, block_size: int = 1024 * 1024 * 10) -> str:
+        if self.show_rate_of_progress:
             file_size = get_file_size(file_path)
         with open(file_path, "rb") as f:
             if block_size:
-                if show_rate_of_progress:
+                if self.show_rate_of_progress:
                     count = 0
                 while True:
                     data = f.read(block_size)
                     if not data:
                         break
                     self.hash_algorithm.update(data)
-                    if show_rate_of_progress:
+                    if self.show_rate_of_progress:
                         count += block_size
                         interact_util.progress_bar(progress=count / file_size)
-                if show_rate_of_progress:
+                if self.show_rate_of_progress:
                     print()
             else:
                 data = f.read()

@@ -1,8 +1,10 @@
+import functools
 import json
 import logging
 import os
 import subprocess
 import sys
+import threading
 import time
 import traceback
 
@@ -53,8 +55,12 @@ def default_logger(level=logging.DEBUG):
     logger.addHandler(console_handler)
     return logger
 
-
-def run_command(command: str, show_output: bool = False, print_interval: float = 0.01) -> str:
+'''
+Known error: 
+UnicodeDecodeError: 'utf-8' codec can't decode byte 0x89 in position 0: invalid start byte,
+in "output_line = process.stdout.readline()"
+'''
+def run_command(command: str, show_output: bool = True, print_interval: float = 0.01) -> str:
     # 运行命令，并将标准输出捕获
     process = subprocess.Popen(command, shell=True, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True,
                                bufsize=1, encoding='utf-8')
@@ -158,6 +164,39 @@ def run_py_advanced(script_path: str, python_path: str = 'python'):
         input()
 
 
+def timeout(seconds):
+    def decorator(func):
+        @functools.wraps(func)
+        def wrapper(*args, **kwargs):
+            result = [None]
+            exception = [None]
+
+            def target():
+                try:
+                    result[0] = func(*args, **kwargs)
+                except Exception as e:
+                    exception[0] = e
+
+            thread = threading.Thread(target=target)
+            thread.start()
+            thread.join(timeout=seconds)
+
+            if thread.is_alive():
+                try:
+                    thread._stop()  # force termination of process
+                except AssertionError:
+                    pass
+                raise TimeoutError(f"Function '{func.__name__}' exceeded the timeout of {seconds} seconds")
+
+            if exception[0] is not None:
+                raise exception[0]
+
+            return result[0]
+
+        return wrapper
+
+    return decorator
+
+
 if __name__ == '__main__':
-    import auto_wechat
-    auto_wechat.run_automation()
+    pass

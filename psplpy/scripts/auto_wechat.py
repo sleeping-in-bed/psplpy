@@ -20,7 +20,7 @@ def run_automation(write_path: str = None) -> str:
         os.remove(log_file)
     python_path = sys.executable
     result = other_util.run_command(
-        f'{python_path} {os.path.join(os.path.join(os.path.dirname(python_path), "Scripts"), "automation.py")}')
+        f'{python_path} {os.path.join(os.path.join(os.path.dirname(python_path), ""), "automation.py")}')
     if write_path:
         with open(write_path, 'w', encoding='utf-8') as f:
             f.write(result)

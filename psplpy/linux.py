@@ -15,7 +15,6 @@ def automatic_screen_lock(time: int = 0) -> str:
     return other_util.run_command(command, show_output=True)
 
 
-
 def apt_get(name: str) -> str:
     command = f"apt-get install {name}"
     return other_util.run_command(command, show_output=True)

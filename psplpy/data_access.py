@@ -6,7 +6,7 @@ import pickle
 import re
 import time
 import zlib
-from typing import Dict, List, Tuple, Any
+from typing import Any
 
 from file_util import create_file
 from interact_util import progress_bar
@@ -24,7 +24,7 @@ def check_int_or_float(input_str: str) -> type:
         return str
 
 
-def convert_dict_keys_values_to_numbers(data: object) -> object:
+def convert_json_dict_key_to_number(data: object) -> object:
     if isinstance(data, dict):
         # if data type is dict, convert it
         converted_dict = {}
@@ -33,14 +33,14 @@ def convert_dict_keys_values_to_numbers(data: object) -> object:
                 trans_type = check_int_or_float(key)
                 key = trans_type(key)
             # process the values in dict, using recursion
-            value = convert_dict_keys_values_to_numbers(value)
+            value = convert_json_dict_key_to_number(value)
             converted_dict[key] = value
         return converted_dict
     elif isinstance(data, (list, tuple, set)):
         # if date type is list, tuple or set, process it recursively
         converted_list = []
         for item in data:
-            converted_item = convert_dict_keys_values_to_numbers(item)
+            converted_item = convert_json_dict_key_to_number(item)
             converted_list.append(converted_item)
         return type(data)(converted_list)
     else:
@@ -52,20 +52,17 @@ def load_json(file_path: str, encoding: str = 'utf-8', trans_key_to_num: bool = 
     with open(file_path, encoding=encoding) as file_path:
         pyjson = json.load(file_path)
     if trans_key_to_num:
-        return convert_dict_keys_values_to_numbers(pyjson)
+        return convert_json_dict_key_to_number(pyjson)
     else:
         return pyjson
 
 
 def _get_empty_data_structure(data_type: type):
-    if data_type in (dict, Dict):
-        return {}
-    elif data_type in (list, List):
-        return []
-    elif data_type in (tuple, Tuple):
-        return ()
+    t = (dict, list, tuple, set)
+    if data_type in t:
+        return data_type()
     else:
-        raise ValueError("Not be supported data type")
+        raise ValueError(f"Just support {t}.")
 
 
 def load_json_maybe_null(file_path: str, data_type, allow_null: bool = False, encoding: str = 'utf-8',

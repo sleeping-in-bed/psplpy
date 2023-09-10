@@ -1,4 +1,5 @@
 import os
+import shutil
 import sys
 
 
@@ -20,6 +21,10 @@ def upload_pypi_project(project_dir: str, username: str = '__token__', passwd: s
     if not python_path:
         python_path = sys.executable
     os.chdir(project_dir)
+    try:
+        shutil.rmtree('dist')
+    except FileNotFoundError:
+        print(f"dist doesn't exist or fail to delete.")
     if just_build:
         build(python_path)
     else:
