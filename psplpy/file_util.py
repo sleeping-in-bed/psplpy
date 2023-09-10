@@ -14,9 +14,9 @@ def read_text_in_file(file_path: str, encoding: str = 'utf-8'):
     return content
 
 
-def get_this_dir_abspath(__file__) -> str:
-    """return the directory name where this function be used"""
-    return os.path.dirname(os.path.abspath(__file__))
+def get_abspath_from_relpath(__file__, relpath: str) -> str:
+    """returns the absolute path relative to the folder where the current file is located"""
+    return os.path.join(os.path.dirname(os.path.abspath(__file__)), relpath)
 
 
 def create_file(file_path: str) -> None:

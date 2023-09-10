@@ -44,7 +44,7 @@ def quick_click(num: int, thread: int = 10, point: tuple = None, start_interval:
 class Adb:
     def __init__(self, device: str = None, adb_path: str = None, show_time: bool = False):
         if not adb_path:
-            adb_path = os.path.join(file_util.get_this_dir_abspath(__file__), r'tools\platform-tools\adb.exe')
+            adb_path = file_util.get_abspath_from_relpath(__file__, r'tools\platform-tools\adb.exe')
             if not os.path.exists(adb_path):
                 adb_path = 'adb'
             self.adb_path = adb_path

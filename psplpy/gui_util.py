@@ -1,11 +1,14 @@
 import sys
-
 from PyQt6.QtGui import QIcon
 from PyQt6.QtWidgets import QMainWindow, QApplication
 
+import file_util
+
 
 class PyMainWindow(QMainWindow):
-    def __init__(self, title: str = 'python', icon_path: str = r'data/icon.png', length_ratio: float = 3 / 5):
+    def __init__(self, title: str = 'python',
+                 icon_path: str = file_util.get_abspath_from_relpath(__file__, r'data/icon.png'),
+                 length_ratio: float = 3 / 5):
         super().__init__()
         self.setWindowTitle(title)
         self.setWindowIcon(QIcon(icon_path))

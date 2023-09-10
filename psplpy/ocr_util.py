@@ -23,7 +23,7 @@ class PyOcr:
     dddd_ocr = 'ddddocr'
 
     def __init__(self, detect_module: str = 'PaddleOCR', lang: str = 'chs', debug: bool = False,
-                 debug_dir: str = os.path.join(file_util.get_this_dir_abspath(__file__), r'debug\ocr_pic'),
+                 debug_dir: str = file_util.get_abspath_from_relpath(__file__, r'debug\ocr_pic'),
                  logger=other_util.default_logger(), log_path: str = None, use_gpu: bool = False):
         self.detect_module = detect_module.casefold()
         self.debug = debug
