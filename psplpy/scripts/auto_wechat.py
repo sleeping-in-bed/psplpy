@@ -8,8 +8,8 @@ from typing import Tuple
 
 import pyperclip
 import uiautomation as auto
-import file_util
-import other_util
+from psplpy import file_util
+from psplpy import other_util
 
 auto.uiautomation.DEBUG_SEARCH_TIME = False
 

@@ -3,7 +3,7 @@ requires = ["hatchling"]
 build-backend = "hatchling.build"
 [project]
 name = "psplpy"
-version = "0.7.1"
+version = "0.8.0"
 authors = []
 description = "The Personal Study Purposes Library of PYthon."
 readme = "README.md"

@@ -17,7 +17,7 @@ def progress_bar(progress: float, bar_length: int = 40, finished_chr: str = '=',
 
 
 def limited_input(str_list: [list | tuple | set] = None, regex_list: [list | tuple | set] = None, print_str: str = '',
-                  error_tip: str = 'Input error, please re-enter.') -> str:
+                  error_tip: str = 'Invalid input, please re-enter.') -> str:
     while True:
         input_str = input(print_str)
         if str_list:
@@ -28,8 +28,7 @@ def limited_input(str_list: [list | tuple | set] = None, regex_list: [list | tup
                 match = re.match(regex, input_str)
                 if match:
                     return input_str
-        else:
-            print(error_tip)
+        print(error_tip)
 
 # define color constants
 foreground_color_dict = {

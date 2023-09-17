@@ -6,3 +6,4 @@ __pycache__/
 /psplpy/debug/
 /psplpy/beta/
 /psplpy/scripts/de_*.*
+/psplpy/scripts/de_*/

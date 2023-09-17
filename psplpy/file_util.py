@@ -7,6 +7,53 @@ import shutil
 import interact_util
 import other_util
 
+win_reserved_names_list = [
+    'CON', 'PRN', 'AUX', 'NUL',
+    'COM1', 'COM2', 'COM3', 'COM4', 'COM5', 'COM6', 'COM7', 'COM8', 'COM9',
+    'LPT1', 'LPT2', 'LPT3', 'LPT4', 'LPT5', 'LPT6', 'LPT7', 'LPT8', 'LPT9',
+    'CONIN$', 'CONOUT$', 'NUL', 'PRN',
+]
+added_reserved_suffix = '_win'
+
+
+def recursive_splitext(name_with_ext: str) -> str:
+    name = os.path.splitext(name_with_ext)
+    if not name[1]:
+        return name[0]
+    else:
+        return recursive_splitext(name[0])
+
+
+def process_win_reserved_name(path: str, restore: bool) -> (bool, str):
+    # 使用os.path.normpath()规范化路径
+    normalized_path = os.path.normpath(path)
+    # 拆分路径成各级文件夹
+    folders = normalized_path.split(os.sep)
+
+    flag = False
+    # 检查每个文件夹名称是否是保留名称
+    for i in range(len(folders)):
+        # 所有名称只保留第一个"."前的名字
+        name = recursive_splitext(folders[i])
+        # 使用 find() 方法查找第一个点号的位置
+        dot_index = folders[i].find('.')
+        if dot_index == -1:
+            dot_index = len(folders[i])
+        if not restore:
+            if name.upper() in win_reserved_names_list:
+                flag = True
+                # 在点号之前插入文本
+                folders[i] = folders[i][:dot_index] + added_reserved_suffix + folders[i][dot_index:]
+        else:
+            if name.endswith(added_reserved_suffix):
+                original_name = name[:-len(added_reserved_suffix)]
+                if original_name.upper() in win_reserved_names_list:
+                    flag = True
+                    # 原名接上点号后的文本
+                    folders[i] = original_name + folders[i][dot_index:]
+
+    return flag, os.sep.join(folders)
+
 
 def read_text_in_file(file_path: str, encoding: str = 'utf-8'):
     with open(file_path, encoding=encoding) as file:
@@ -14,25 +61,30 @@ def read_text_in_file(file_path: str, encoding: str = 'utf-8'):
     return content
 
 
-def get_abspath_from_relpath(__file__, relpath: str) -> str:
+def get_abspath_from_relpath(__file__, relpath: str = '') -> str:
     """returns the absolute path relative to the folder where the current file is located"""
-    return os.path.join(os.path.dirname(os.path.abspath(__file__)), relpath)
+    current_dir_abspath = os.path.dirname(os.path.abspath(__file__))
+    if relpath:
+        return os.path.join(current_dir_abspath, relpath)
+    else:
+        return current_dir_abspath
 
 
-def create_file(file_path: str) -> None:
+def create_dir(dir_path: str) -> str:
+    """if directory doesn't exist, then create it"""
+    if not os.path.exists(dir_path):
+        os.makedirs(dir_path)
+    return dir_path
+
+
+def create_file(file_path: str) -> str:
     """if file path doesn't exist, then create all directories on the path and the file"""
     if not os.path.exists(file_path):
         dir_name = os.path.dirname(file_path)
         if dir_name:
-            if not os.path.exists(dir_name):
-                os.makedirs(dir_name)
+            create_dir(dir_name)
         open(file_path, 'w').close()
-
-
-def create_dir(dir: str) -> None:
-    """if directory doesn't exist, then create it"""
-    if not os.path.exists(dir):
-        os.makedirs(dir)
+    return file_path
 
 
 def rename_duplicate_file(file_path: str) -> str:
@@ -61,7 +113,7 @@ def copy_file(src_path: str, dst_path: str) -> str:
 def get_current_time_as_file_name(ext: str, format_str: str = None) -> str:
     """generate file name according to the current time"""
     if not format_str:
-        format_str = "%Y%m%d_%H%M%S%f"
+        format_str = "%Y%m%d_%H%M%S_%f"
     file_name = datetime.datetime.now().strftime(format_str)
     if ext:
         if ext.startswith("."):
@@ -82,6 +134,24 @@ def get_file_size(file_path: str, ignore_not_exist: bool = False) -> int:
             return 0
         else:
             raise FileNotFoundError
+
+
+def get_files_in_dir(directory: str, exclude_relpath: list = None, exclude_abspath: list = None,
+                     exclude_abspath_match_compiled_regex: list = None, return_rel_path: bool = False) -> list:
+    file_list = []
+    for root, dirs, files in os.walk(directory):
+        for file in files:
+            file_abspath = os.path.join(root, file)
+            has_rel = exclude_relpath and any(os.path.join(directory, p) in file_abspath for p in exclude_relpath)
+            has_abs = exclude_abspath and any(p in file_abspath for p in exclude_abspath)
+            has_match = exclude_abspath_match_compiled_regex and any(
+                compiled_regex.match(file_abspath) for compiled_regex in exclude_abspath_match_compiled_regex)
+            if not has_rel and not has_abs and not has_match:
+                file_list.append(file_abspath)
+    if return_rel_path:
+        for i in range(len(file_list)):
+            file_list[i] = file_list[i].replace(directory + '\\', '')
+    return file_list
 
 
 class PyHash:
