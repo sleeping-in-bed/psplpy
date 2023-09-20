@@ -9,9 +9,11 @@ from psplpy import gui_util
 
 
 '''
-know_error:
+known_error:
     1.Though it doesn't edit a binary file, it's still seen as edited file.
 '''
+
+
 class MenuBar(QMenuBar):
     def __init__(self, parent=None, filters: str = "All files (*.*);;Text documents (*.txt)",
                  edit=None, debug: bool = False):

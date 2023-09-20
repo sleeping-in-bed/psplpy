@@ -4,16 +4,19 @@ import sys
 from unittest.mock import patch
 
 
+def overlay_print(s: str) -> None:
+    # \r means go back to the beginning of the line
+    sys.stdout.write(f'\r{s}')
+    sys.stdout.flush()
+
+
 def progress_bar(progress: float, bar_length: int = 40, finished_chr: str = '=', unfinished_chr: str = '-',
-                 both_sides_border_chr_tuple: tuple = ('[', ']'), progress_precision: int = 2) -> None:
+                 left_border_chr: str = '[', right_border_chr: str = ']', progress_precision: int = 2) -> None:
     if progress > 1:
         progress = 1
     filled_length = int(progress * bar_length)
     bar = finished_chr * filled_length + unfinished_chr * (bar_length - filled_length)
-    # \r means go back to the beginning of the line
-    sys.stdout.write(
-        f'\r{both_sides_border_chr_tuple[0]}{bar}{both_sides_border_chr_tuple[1]} {progress * 100:.{progress_precision}f}%')
-    sys.stdout.flush()
+    overlay_print(f'{left_border_chr}{bar}{right_border_chr} {progress * 100:.{progress_precision}f}%')
 
 
 def limited_input(str_list: [list | tuple | set] = None, regex_list: [list | tuple | set] = None, print_str: str = '',

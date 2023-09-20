@@ -138,16 +138,21 @@ def get_file_size(file_path: str, ignore_not_exist: bool = False) -> int:
 
 def get_files_in_dir(directory: str, exclude_relpath: list = None, exclude_abspath: list = None,
                      exclude_abspath_match_compiled_regex: list = None, return_rel_path: bool = False) -> list:
+    def _check(path: str) -> bool:
+        has_rel = exclude_relpath and any(os.path.join(directory, p) in path for p in exclude_relpath)
+        has_abs = exclude_abspath and any(p in path for p in exclude_abspath)
+        has_match = exclude_abspath_match_compiled_regex and any(
+            compiled_regex.match(path) for compiled_regex in exclude_abspath_match_compiled_regex)
+        if not has_rel and not has_abs and not has_match:
+            return True
+
     file_list = []
     for root, dirs, files in os.walk(directory):
-        for file in files:
-            file_abspath = os.path.join(root, file)
-            has_rel = exclude_relpath and any(os.path.join(directory, p) in file_abspath for p in exclude_relpath)
-            has_abs = exclude_abspath and any(p in file_abspath for p in exclude_abspath)
-            has_match = exclude_abspath_match_compiled_regex and any(
-                compiled_regex.match(file_abspath) for compiled_regex in exclude_abspath_match_compiled_regex)
-            if not has_rel and not has_abs and not has_match:
-                file_list.append(file_abspath)
+        if _check(root):
+            for file in files:
+                file_abspath = os.path.join(root, file)
+                if _check(file_abspath):
+                    file_list.append(file_abspath)
     if return_rel_path:
         for i in range(len(file_list)):
             file_list[i] = file_list[i].replace(directory + '\\', '')

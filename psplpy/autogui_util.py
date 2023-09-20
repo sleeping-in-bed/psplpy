@@ -149,6 +149,5 @@ class Adb:
             return ocr.get_text_info_list(temp_file.name, ignore_case, keep_only_en_and_num, image_enlarge)
 
 
-
 if __name__ == '__main__':
     pass
