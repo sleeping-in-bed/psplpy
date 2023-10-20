@@ -8,7 +8,7 @@ from typing import List, Any
 import numpy as np
 import pyautogui
 from PIL import Image
-from future.moves import pickle
+import pickle
 
 import file_util
 import image_util
