@@ -77,8 +77,6 @@ class ClientSocket:
         return input_path
 
 
-
-
 class ServerSocket:
     def __init__(self, host: str = '127.0.0.1', port: int = 12345, backlog: int = 1):
         self.server_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
@@ -95,94 +93,3 @@ class ServerSocket:
             args = []
         client_handler = threading.Thread(target=func, args=(client_socket, *list(args)), kwargs=kwargs)
         client_handler.start()
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-def send(host: str, port: int, data: object = None, file_path: str = None, buffer_size: int = 4096,
-         ignore_error: bool = True, debug: bool = False) -> None:
-    if data and file_path:
-        raise ValueError('data and file_path can only be given one')
-    elif not data and not file_path:
-        raise ValueError('data or file_path must be given one')
-    try:
-        # creates socket
-        client_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        client_socket.connect((host, port))
-        if data:
-            serialized_data = pickle.dumps(data)
-            client_socket.send(serialized_data)
-        else:
-            # opens file and sends data
-            with open(file_path, 'rb') as file:
-                while True:
-                    data = file.read(buffer_size)
-                    if not data:
-                        break
-                    client_socket.send(data)
-        # closes socket
-        client_socket.close()
-        if debug:
-            if data:
-                print('data send successfully')
-            else:
-                print(f"File {file_path} send successfully")
-    except Exception as e:
-        if ignore_error:
-            print(f"A Wrong occurred when sending: {str(e)}")
-        else:
-            raise e
-
-
-def receive(host: str, port: int, save_path: str = None, buffer_size: int = 4096, ignore_error: bool = True,
-            debug: bool = False) -> object:
-    try:
-        server_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        server_socket.bind((host, port))
-        server_socket.listen(1)
-
-        if debug:
-            print(f"Waiting for connection...")
-        client_socket, addr = server_socket.accept()
-        if debug:
-            print(f"Connection from {addr}")
-
-        if save_path:
-            with open(save_path, 'wb') as file:
-                while True:
-                    data = client_socket.recv(buffer_size)
-                    if not data:
-                        break
-                    file.write(data)
-            client_socket.close()
-            server_socket.close()
-            return save_path
-        else:
-            # Initializes an empty bytes to store the received data
-            received_data = b''
-            while True:
-                data_chunk = client_socket.recv(buffer_size)
-                if not data_chunk:
-                    break
-                received_data += data_chunk
-            deserialized_data = pickle.loads(received_data)
-            client_socket.close()
-            server_socket.close()
-            return deserialized_data
-    except Exception as e:
-        if ignore_error:
-            print(f"A Wrong occurred when receiving: {str(e)}")
-        else:
-            raise e
