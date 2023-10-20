@@ -124,7 +124,7 @@ class Adb:
 
     def _multiple_clicks(self, num: int, point: tuple, i) -> None:
         for _ in range(num):
-            self.tap(*point)
+            self.tap(point)
             if self.show_time:
                 print(f'{i}_{_}: {time.time()}')
 

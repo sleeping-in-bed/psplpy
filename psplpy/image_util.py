@@ -13,10 +13,10 @@ def get_box_center(region: Tuple) -> Tuple:
 
 def trans_to_ltwh(region: Tuple) -> Tuple:
     if len(region) == 4:
-        if len(region[0]) == 2:
-            return four_vertexes_transform_to_ltwh(region)
-        elif isinstance(region[0], int):
+        if isinstance(region[0], int):
             return region
+        elif len(region[0]) == 2:
+            return four_vertexes_transform_to_ltwh(region)
     elif len(region) == 2:
         """convert ((left, top), (right, bottom)) to (left, top, width, height)"""
         if len(region[0]) == 2:

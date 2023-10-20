@@ -99,6 +99,11 @@ def run_py(script_path: str, python_path: str = 'python'):
         input()
 
 
+def run_py_json(config_json_path: str):
+    config = json.load(open(config_json_path))
+    run_py(config['script_path'], config['python_path'])
+
+
 def run_py_advanced(script_path: str, python_path: str = 'python'):
     def read_last_line_as_json(file_path, data_type):
         with open(file_path, 'rb') as file:

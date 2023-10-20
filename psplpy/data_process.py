@@ -52,3 +52,7 @@ def find_list_duplicates(lst: list) -> dict:
             result[item] = indices
 
     return result
+
+
+def sorted_dict_according_to_value(dic: dict, reversed: bool = False) -> dict:
+    return dict(sorted(dic.items(), key=lambda item: item[1]), reversed=reversed)

@@ -61,13 +61,9 @@ def read_text_in_file(file_path: str, encoding: str = 'utf-8'):
     return content
 
 
-def get_abspath_from_relpath(__file__, relpath: str = '') -> str:
-    """returns the absolute path relative to the folder where the current file is located"""
-    current_dir_abspath = os.path.dirname(os.path.abspath(__file__))
-    if relpath:
-        return os.path.join(current_dir_abspath, relpath)
-    else:
-        return current_dir_abspath
+def base_dir(__file__, relpath: str = '') -> str:
+    base = os.path.dirname(os.path.abspath(__file__))
+    return (lambda relpath: os.path.join(base, relpath) if relpath else base)(relpath)
 
 
 def create_dir(dir_path: str) -> str:
@@ -148,11 +144,10 @@ def get_files_in_dir(directory: str, exclude_relpath: list = None, exclude_abspa
 
     file_list = []
     for root, dirs, files in os.walk(directory):
-        if _check(root):
-            for file in files:
-                file_abspath = os.path.join(root, file)
-                if _check(file_abspath):
-                    file_list.append(file_abspath)
+        for file in files:
+            file_abspath = os.path.join(root, file)
+            if _check(file_abspath):
+                file_list.append(file_abspath)
     if return_rel_path:
         for i in range(len(file_list)):
             file_list[i] = file_list[i].replace(directory + '\\', '')

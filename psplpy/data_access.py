@@ -5,9 +5,11 @@ import os
 import pickle
 import re
 import time
+import zipfile
 import zlib
 from typing import Any
 
+import file_util
 from file_util import create_file
 from interact_util import progress_bar
 
@@ -138,6 +140,27 @@ def load_and_decompress_obj(file_path: str, used_lib: str = 'lzma') -> object:
     with open(file_path, "rb") as f:
         compressed_data = f.read()
     return decompress_obj(compressed_data, used_lib)
+
+
+def compress_file(file_list_or_dir: list | str, output_path: str, start_path: str = None) -> str:
+    if isinstance(file_list_or_dir, str):
+        file_list_or_dir = file_util.get_files_in_dir(file_list_or_dir)
+
+    with zipfile.ZipFile(output_path, 'w', zipfile.ZIP_DEFLATED) as zipf:
+        for file_path in file_list_or_dir:
+            arcname = None
+            if start_path:
+                arcname = os.path.relpath(file_path, start_path)
+            zipf.write(file_path, arcname=arcname)
+    return output_path
+
+
+def extract_file(zip_file_path: str, extract_dir: str) -> str:
+    if not os.path.exists(extract_dir):
+        os.makedirs(extract_dir)
+    with zipfile.ZipFile(zip_file_path, 'r') as zip_ref:
+        zip_ref.extractall(extract_dir)
+    return extract_dir
 
 
 def compress_file_lzma(input_file: str, output_file: str, chunk_size: int = 1024 * 1024 * 10):
