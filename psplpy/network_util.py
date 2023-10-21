@@ -6,7 +6,7 @@ from typing import Any
 
 
 class ClientSocket:
-    def __init__(self, host: str = '127.0.0.1', port: int = 12345, buflen: int = 4096,
+    def __init__(self, host: str = '127.0.0.1', port: int = 12345, buflen: int = 1024 * 1024,
                  client_socket: socket.socket = None):
         self.host = host
         self.port = port
@@ -30,9 +30,9 @@ class ClientSocket:
         return self.client_socket.recv(self._buflen(buflen))
 
     def recv_all(self, buflen: int = -1) -> bytes:
-        data = b""
+        data = bytearray()
         while True:
-            trunk_data = self.client_socket.recv(self._buflen(buflen))
+            trunk_data = self.recv(buflen)
             if not trunk_data:
                 return data
             data += trunk_data
@@ -61,7 +61,7 @@ class ClientSocket:
     def receive_file(self, output_path: str, buflen: int = -1) -> str:
         with open(output_path, 'wb') as f:
             while True:
-                data = self.recv(self._buflen(buflen))
+                data = self.recv(buflen)
                 if not data:
                     break
                 f.write(data)

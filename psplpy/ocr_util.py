@@ -65,7 +65,7 @@ class PyOcr:
             self.logger.debug('Model loading time：' + str(time.perf_counter() - time_start))
 
     @staticmethod
-    def transform_image(image: Any):
+    def _transform_image(image: Any):
         if isinstance(image, (str, np.ndarray, bytes)):
             return image
         elif isinstance(image, (list, tuple)):
@@ -91,7 +91,7 @@ class PyOcr:
         time_start = time.perf_counter()
         if not image:
             image = 0, 0, *pyautogui.size()
-        image_array = PyOcr.transform_image(image)
+        image_array = PyOcr._transform_image(image)
         if image_enlarge != 1:
             image_array = image_util.enlarge_img(image_array, image_enlarge)
 
@@ -103,7 +103,7 @@ class PyOcr:
             for i in range(0, len(text[0])):
                 temp_list = [text[0][i][0], text[0][i][1][0], text[0][i][1][1]]
                 text_info_list.append(temp_list)
-        elif self.detect_module == 'easyocr':   # similar with PaddleOCR
+        elif self.detect_module == 'easyocr':  # similar with PaddleOCR
             text_info_list = self.ocr.readtext(image_array, detail=1)
         elif self.detect_module in ['ddddocr']:
             raise ValueError(f'{self.detect_module} not support this function')
@@ -115,12 +115,12 @@ class PyOcr:
             text_info_list = [[str_info[0], str_info[1].casefold(), str_info[2]] for str_info in text_info_list]
         if keep_only_en_and_num:
             text_info_list = [[str_info[0], keep_only_english_and_num(str_info[1]), str_info[2]] for str_info in
-                             text_info_list]
+                              text_info_list]
         if self.debug:
             dst_path = os.path.join(self.debug_dir, os.path.basename(file_util.get_current_time_as_file_name('.png')))
             try:
                 image_util.draw_polygons_on_pic(image_array, [[tuple(x[0][0]), tuple(x[0][1]), tuple(x[0][2]),
-                                                   tuple(x[0][3])] for x in text_info_list], dst_path)
+                                                               tuple(x[0][3])] for x in text_info_list], dst_path)
                 self.logger.debug('pic_path：' + str(dst_path))
             except Exception as e:
                 self.logger.critical(str(e))
@@ -165,22 +165,25 @@ class PyOcrClient:
         self.server_socket = network_util.ServerSocket(*self.self_address)
         self.result_dict = {}
         self.id = 0
-        self.stop_flag = True
-        threading.Thread(target=self.receive_text_info).start()
+        threading.Thread(target=self._receive_text_info).start()
 
-    def send_image(self, image_path: str) -> int:
+    def request_text_info_list(self, image: Any = None, ignore_case: bool = False, keep_only_en_and_num: bool = False,
+                               image_enlarge: float = 1, rect_mode: str = PyOcr.ltrtrblt) -> int:
         if self.debug: print(f'开始发送图像 {self.id}')
         self.client_socket.connect()
-        with open(image_path, 'rb') as image_file:
+        with open(image, 'rb') as image_file:
             id = self.id
-            self.client_socket.send_obj({'id': id, 'value': image_file.read(), 'address': self.self_address})
+            kwargs = {'ignore_case': ignore_case, 'keep_only_en_and_num': keep_only_en_and_num,
+                      'image_enlarge': image_enlarge, 'rect_mode': rect_mode}
+            self.client_socket.send_obj({'id': id, 'value': image_file.read(), 'address': self.self_address,
+                                         'kwargs': kwargs})
             self.id += 1
         if self.debug: print('图像发送完成')
         self.client_socket.close()
         return id
 
-    def receive_text_info(self) -> None:
-        while self.stop_flag:
+    def _receive_text_info(self) -> None:
+        while True:
             if self.debug: print('等待连接')
             client_socket, client_address = self.server_socket.accept()
             if self.debug: print(f"来自 {client_address} 的连接")
@@ -189,14 +192,11 @@ class PyOcrClient:
             self.result_dict[data['id']] = data['value']
             client_socket.close()
 
-    def fetch_text_info(self, id: int) -> list:
+    def fetch_text_info_list(self, id: int) -> list:
         while True:
-            if self.result_dict.get(id) is not None:    # 要使用None，防止get返回空列表被判假
+            if self.result_dict.get(id) is not None:  # 要使用None，防止get返回空列表被判假
                 return self.result_dict.pop(id)
             time.sleep(0.01)
-
-    def close(self):
-        self.stop_flag = False
 
 
 class PyOcrServer:
@@ -216,7 +216,7 @@ class PyOcrServer:
         manager = multiprocessing.Manager()
         self.share_image_list = manager.list()
         self.server_socket = network_util.ServerSocket(*self.self_address)
-        threading.Thread(target=self.receive_image).start()
+        threading.Thread(target=self._receive_image).start()
 
         for i in range(self.number_of_processing):
             multiprocessing.Process(target=self._ocr_server, args=(self.kwargs, self.lock)).start()
@@ -226,16 +226,16 @@ class PyOcrServer:
         if self.server_debug: print(ocr)
         while True:
             # if self.server_debug: print(len(self.share_image_list))
-            item = None
+            data = None
             with lock:
                 if self.share_image_list:
-                    item = self.share_image_list.pop(0)
-            if item:
-                text_info_list = ocr.get_text_info_list(item['value'])
-                self.send_data({'id': item['id'], 'value': text_info_list}, item['address'])
+                    data = self.share_image_list.pop(0)
+            if data:
+                text_info_list = ocr.get_text_info_list(data['value'], **data['kwargs'])
+                self._send_data({'id': data['id'], 'value': text_info_list}, data['address'])
             time.sleep(0.01)
 
-    def receive_image(self):
+    def _receive_image(self):
         while True:
             if self.server_debug: print('等待连接')
             client_socket, client_address = self.server_socket.accept()
@@ -245,7 +245,7 @@ class PyOcrServer:
             client_socket.close()
             self.share_image_list.append(data)
 
-    def send_data(self, data, address):
+    def _send_data(self, data, address):
         if self.server_debug: print(f'发送 {data["id"]} 数据')
         client_socket = network_util.ClientSocket(*address)
         client_socket.connect()
@@ -259,3 +259,11 @@ if __name__ == '__main__':
         ocr = PyOcr(debug=True, use_gpu=False, detect_module=PyOcr.easy_ocr)
         l = ocr.get_text_info_list()
         print(l)
+    elif choose == '2':
+        server_address = ('127.0.0.1', 12345)
+        client_address = ('127.0.0.1', 12346)
+        PyOcrServer(server_address)
+        client = PyOcrClient(server_address, client_address)
+        id = client.request_text_info_list(r'C:\Users\ocg20\Pictures\2023-08-25\New folder\016_1_1550_775.png',
+                                           rect_mode=PyOcr.ltwh)
+        print(client.fetch_text_info_list(id))

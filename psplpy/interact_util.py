@@ -19,19 +19,30 @@ def progress_bar(progress: float, bar_length: int = 40, finished_chr: str = '=',
     overlay_print(f'{left_border_chr}{bar}{right_border_chr} {progress * 100:.{progress_precision}f}%')
 
 
-def limited_input(str_list: [list | tuple | set] = None, regex_list: [list | tuple | set] = None, print_str: str = '',
-                  error_tip: str = 'Invalid input, please re-enter.') -> str:
+def limited_input(str_list: [list | tuple | set] = None, regex_list: [list | tuple | set] = None,
+                  func_list: [list | tuple | set] = None, input_processing_func=None,
+                  print_str: str = '', error_tip: str = 'Invalid input, please re-enter.') -> str:
+    result_str = ''
     while True:
-        input_str = input(print_str)
+        input_str = input(print_str + '\n')
         if str_list:
             if input_str in str_list:
-                return input_str
+                result_str = input_str
         elif regex_list:
             for regex in regex_list:
                 match = re.match(regex, input_str)
                 if match:
-                    return input_str
+                    result_str = input_str
+        elif func_list:
+            for func in func_list:
+                if func(input_str):
+                    result_str = input_str
+        if result_str:
+            if input_processing_func:
+                return input_processing_func(result_str)
+            return result_str
         print(error_tip)
+
 
 # define color constants
 foreground_color_dict = {
