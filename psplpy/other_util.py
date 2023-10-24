@@ -1,3 +1,4 @@
+import ast
 import functools
 import json
 import logging
@@ -201,6 +202,24 @@ def timeout(seconds):
         return wrapper
 
     return decorator
+
+
+def ast_traverse(node, depth: int = 0):
+    indent = "    " * depth
+    print(f'{indent}{node} depth:{depth}')
+    print(f'{indent}attributes: {[item for item in dir(node) if not (item.startswith("__") and item.endswith("__"))]}')
+    print(f'{indent}unparsed: {ast.unparse(node)}')
+    for field, value in ast.iter_fields(node):
+        try:
+            unparsed_value = ast.unparse(value)
+        except AttributeError:
+            print(f'{indent}filed: {field}, type: {type(field)}, value: {value}, type: {type(value)}')
+        else:
+            print(f'{indent}filed: {field}, type: {type(field)},'
+                  f' value: {value}, type: {type(value)}, unparsed: {unparsed_value}')
+
+    for child_node in ast.iter_child_nodes(node):
+        ast_traverse(child_node, depth + 1)
 
 
 if __name__ == '__main__':

@@ -1,0 +1,14 @@
+{% extends 'base.html' %}
+{% load i18n %}
+
+{% block content %}
+<p>Profile</p>
+<p>
+    Username: {{ request.user.username }} <br>
+    Name: {{ request.user.first_name }} {{ request.user.last_name }}<br>
+    Date Joined: {{ request.user.date_joined }} <br>
+    Email: {{ request.user.email }}<br>
+    Last Login: {{ request.user.last_login }}<br>
+</p>
+<p><a href="{% url 'accounts:password_change' %}">{% translate 'Change password' %}</a></p>
+{% endblock %}

@@ -3,7 +3,7 @@ requires = ["hatchling"]
 build-backend = "hatchling.build"
 [project]
 name = "psplpy"
-version = "0.10.2"
+version = "0.11.0"
 authors = []
 description = "The Personal Study Purposes Library of PYthon."
 readme = "README.md"
@@ -14,5 +14,4 @@ classifiers = [
     "Operating System :: OS Independent",
 ]
 dependencies = [
-
 ]
