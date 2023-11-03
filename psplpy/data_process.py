@@ -56,3 +56,20 @@ def find_list_duplicates(lst: list) -> dict:
 
 def sorted_dict_according_to_value(dic: dict, reversed: bool = False) -> dict:
     return dict(sorted(dic.items(), key=lambda item: item[1]), reversed=reversed)
+
+
+def split_list(input_list: list, num_chunks: int) -> list[list]:
+    '''Split list to several lists, not change the order'''
+    chunk_size = len(input_list) // num_chunks
+    extra_elements = len(input_list) % num_chunks
+    result = []
+    start = 0
+    for i in range(num_chunks):
+        chunk_end = start + chunk_size + (1 if i < extra_elements else 0)
+        result.append(input_list[start:chunk_end])
+        start = chunk_end
+    return result
+
+
+if __name__ == '__main__':
+    pass

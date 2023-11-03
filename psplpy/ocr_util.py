@@ -7,7 +7,7 @@ from typing import List, Any
 
 import numpy as np
 import pyautogui
-from PIL import Image
+from PIL import Image, ImageEnhance
 import pickle
 
 import file_util
@@ -256,7 +256,7 @@ class PyOcrServer:
 if __name__ == '__main__':
     choose = input('input\n')
     if choose == '1':
-        ocr = PyOcr(debug=True, use_gpu=False, detect_module=PyOcr.easy_ocr)
+        ocr = PyOcr(debug=True, use_gpu=False)
         l = ocr.get_text_info_list()
         print(l)
     elif choose == '2':
@@ -267,3 +267,45 @@ if __name__ == '__main__':
         id = client.request_text_info_list(r'C:\Users\ocg20\Pictures\2023-08-25\New folder\016_1_1550_775.png',
                                            rect_mode=PyOcr.ltwh)
         print(client.fetch_text_info_list(id))
+    elif choose == '3':
+        def image_process(image_path, resize_ratio: float = 2, save_resize_ratio: float = 0.25, contrast: float = 1.5,
+                          brightness: float = 2, reverse_color: bool = False, rotate: int = 0,
+                          sharpness: float = 0.5, pure_black: bool = False, color_diff: int = 10):
+            image = Image.open(image_path)
+            image = image.resize((int(image.width * resize_ratio), int(image.height * resize_ratio)))
+            # 提高图像对比度
+            enhancer = ImageEnhance.Contrast(image)
+            image = enhancer.enhance(contrast)
+            # 提高图像亮度
+            enhancer = ImageEnhance.Brightness(image)
+            image = enhancer.enhance(brightness)
+            # 提高图像锐度
+            enhancer = ImageEnhance.Sharpness(image)
+            image = enhancer.enhance(sharpness)
+
+            if pure_black:
+                # 将图片转换为灰度图
+                image = image.convert('L')
+                # 获得像素点的颜色数据
+                pixels = image.load()
+
+                differ = 255 - color_diff
+                for i in range(image.width):
+                    for j in range(image.height):
+                        if differ <= pixels[i, j] <= 255:
+                            pixels[i, j] = 255
+                        else:
+                            pixels[i, j] = 0
+            image = image.resize((int(image.width * save_resize_ratio), int(image.height * save_resize_ratio)))
+            if reverse_color:
+                image = Image.eval(image, lambda x: 255 - x)
+            image = image.rotate(rotate, expand=True)
+            save_path = file_util.rename_duplicate_file(image_path)
+            image.save(save_path)
+            return save_path
+
+
+        ocr = PyOcr(debug=True, use_gpu=False)
+        image_path = r'C:\Users\ocg20\Desktop\1.png'
+        image_path = image_process(image_path, pure_black=True)
+        l = ocr.get_text_info_list(image_path)

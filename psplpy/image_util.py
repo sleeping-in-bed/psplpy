@@ -63,9 +63,8 @@ def draw_figures_on_pic(image: Any, figure_list: list, figure_type: str, save_pa
     else:
         raise ValueError
     if save_path:
-        dst_path = file_util.rename_duplicate_file(save_path)
-        img.save(dst_path)
-        return dst_path
+        img.save(save_path)
+        return save_path
     else:
         return np.array(img)
 
@@ -89,7 +88,7 @@ def convert_image_to_ndarray(image: Any) -> np.ndarray:
     elif type(image) == np.ndarray:
         image_array = image
     elif isinstance(image, (list, tuple)):
-        image_array = np.array(pyautogui.screenshot(region=ltrb_transform_to_ltwh(image)))
+        image_array = np.array(pyautogui.screenshot(region=trans_to_ltwh(image)))
     else:
         raise TypeError
     return image_array
@@ -159,7 +158,7 @@ def point_in_polygon(point: [List, Tuple], polygon: [List, Tuple]) -> bool:
     return count % 2 == 1
 
 
-def find_minimum_bounding_rect(polygon: [List, Tuple]) -> Tuple:
+def polygon_bounding_rect(polygon: [List, Tuple]) -> Tuple:
     """find the smallest rectangle that can cover a polygon"""
     x_min = min(x for x, y in polygon)
     y_min = min(y for x, y in polygon)
@@ -167,3 +166,7 @@ def find_minimum_bounding_rect(polygon: [List, Tuple]) -> Tuple:
     y_max = max(y for x, y in polygon)
 
     return (x_min, y_min), (x_max, y_max)
+
+
+if __name__ == '__main__':
+    print(polygon_bounding_rect([[184.0, 203.0], [202.0, 186.0], [219.0, 203.0], [202.0, 220.0]]))

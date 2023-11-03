@@ -10,3 +10,5 @@ __pycache__/
 
 /psplpy/scripts/de_*.*
 /psplpy/scripts/de_*/
+
+/psplpy/auto_fw.py
