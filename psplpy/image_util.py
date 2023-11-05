@@ -1,47 +1,49 @@
+from io import BytesIO
 from typing import Tuple, Any, List
 import numpy as np
 import pyautogui
-from PIL import Image, ImageDraw
+from PIL import Image, ImageDraw, ImageEnhance, ImageOps
 
-import file_util
+"""
+rect_format:
+    ltwh: (left, top, width, height)
+    ltrb: ((left, top), (right, bottom))
+    four_vertexes: ((left, top), (right, top), (right, bottom), (left, bottom))
+    
+"""
 
 
-def get_box_center(region: Tuple) -> Tuple:
+def get_screen_box() -> tuple[int, int, int, int]:
+    return 0, 0, *pyautogui.size()
+
+
+def get_box_center(region: Tuple) -> Tuple[int, int]:
     region = trans_to_ltwh(region)
-    return region[0] + region[2] * 0.5, region[1] + region[3] * 0.5
+    return int(region[0] + region[2] * 0.5), int(region[1] + region[3] * 0.5)
 
 
 def trans_to_ltwh(region: Tuple) -> Tuple:
     if len(region) == 4:
-        if isinstance(region[0], int):
+        if isinstance(region[0], int):  # ltwh
             return region
-        elif len(region[0]) == 2:
-            return four_vertexes_transform_to_ltwh(region)
+        elif len(region[0]) == 2:   # four vertexes
+            return *region[0], region[2][0] - region[0][0], region[2][1] - region[0][1]
     elif len(region) == 2:
-        """convert ((left, top), (right, bottom)) to (left, top, width, height)"""
-        if len(region[0]) == 2:
+        if len(region[0]) == 2:     # ltrb
             return *region[0], region[1][0] - region[0][0], region[1][1] - region[0][1]
     raise ValueError(f'No match region type: {region}')
 
 
-def four_vertexes_transform_to_ltrb(four_vertexes: Tuple) -> Tuple:
-    return four_vertexes[0], four_vertexes[2]
-
-
-def four_vertexes_transform_to_ltwh(four_vertexes: Tuple) -> Tuple:
-    return trans_to_ltwh(four_vertexes_transform_to_ltrb(four_vertexes))
-
-
-def ltwh_transform_to_ltrb(region: Tuple) -> Tuple:
-    """convert (left, top, width, height) to ((le[List, Tuple]ft, top), (right, bottom))"""
+def trans_to_ltrb(region: Tuple) -> Tuple:
     if len(region) == 4:
-        return (region[0], region), (region[0] + region[2], region[1] + region[3])
-    elif len(region) == 2:
-        if len(region[0]) == 2 and len(region[1]) == 2:
+        if isinstance(region[0], int):  # ltwh
+            return (region[0], region[1]), (region[0] + region[2], region[1] + region[3])
+        elif len(region[0]) == 2:   # four vertexes
+            return region[0], region[2]
+    elif len(region) == 2:  # ltrb
+        if len(region[0]) == 2:
             return region
-        else:
-            raise ValueError('Wrong length of region')
-    raise ValueError('Wrong length of region')
+    raise ValueError(f'No match region type: {region}')
 
 
 def draw_figures_on_pic(image: Any, figure_list: list, figure_type: str, save_path: str = '',
@@ -77,7 +79,7 @@ def draw_polygons_on_pic(image: Any, polygon_list: list, save_path: str = '',
 def draw_rects_on_img(image: Any, rect_list: list, save_path: str = '',
                       outline: str | Tuple[int, int, int] | Tuple[int, int, int, int] = 'red',
                       width: int = 1) -> [np.ndarray, str]:
-    rect_list = [ltwh_transform_to_ltrb(region) for region in rect_list]
+    rect_list = [trans_to_ltrb(region) for region in rect_list]
     draw_figures_on_pic(image, rect_list, 'rectangle', save_path, outline, width)
 
 
@@ -99,33 +101,17 @@ def save_ndarray_image(image_array: np.ndarray, file_path: str) -> str:
     return file_path
 
 
-def enlarge_img(image: Any, rate: float = 2, save_path: str = None, x_rate: float = None,
-                y_rate: float = None) -> [np.ndarray, str]:
-    img = convert_image_to_ndarray(image)
-    img = Image.fromarray(img)
-    if (not x_rate and y_rate) or (x_rate and not y_rate):
-        raise ValueError('x_rate and y_rate must be given at the same time')
-    else:
-        if x_rate and y_rate:
-            enlarged_image = img.resize((int(img.width * x_rate), int(img.height * y_rate)))
-        else:
-            enlarged_image = img.resize((int(img.width * rate), int(img.height * rate)))
-    if save_path:
-        dst_path = file_util.rename_duplicate_file(save_path)
-        enlarged_image.save(dst_path)
-        return dst_path
-    else:
-        return np.array(enlarged_image)
+def point_rotate_180(point: Tuple[int, int], size: Tuple[int, int]):
+    return size[0] - point[0], size[1] - point[1]
 
 
-def overlap_percentage(rect1: Tuple[float, float, float, float], rect2: Tuple[float, float, float, float]
-                       ) -> Tuple[float, float]:
+def overlap_percentage(rect1: Tuple, rect2: Tuple) -> Tuple[float, float]:
     """calculate the ratio of the overlap of two rectangles to the area of each rectangle"""
-    rect1 = ltwh_transform_to_ltrb(rect1)
-    rect2 = ltwh_transform_to_ltrb(rect2)
+    rect1 = trans_to_ltrb(rect1)
+    rect2 = trans_to_ltrb(rect2)
 
-    x1, y1, r1, b1 = rect1
-    x2, y2, r2, b2 = rect2
+    (x1, y1), (r1, b1) = rect1
+    (x2, y2), (r2, b2) = rect2
     x_overlap = max(0, min(r1, r2) - max(x1, x2))
     y_overlap = max(0, min(b1, b2) - max(y1, y2))
     area1 = (r1 - x1) * (b1 - y1)
@@ -168,5 +154,73 @@ def polygon_bounding_rect(polygon: [List, Tuple]) -> Tuple:
     return (x_min, y_min), (x_max, y_max)
 
 
+class ImageProcess:
+    def __init__(self, image_path: str, save_path: str = None):
+        self.image_path = image_path
+        self.save_path = save_path or self.image_path
+        self.image = Image.open(self.image_path)
+
+    def resize(self, ratio: float):
+        self.image = self.image.resize((int(self.image.width * ratio), int(self.image.height * ratio)))
+        return self
+
+    def contrast(self, contrast: float):
+        enhancer = ImageEnhance.Contrast(self.image)
+        self.image = enhancer.enhance(contrast)
+        return self
+
+    def brightness(self, brightness: float):
+        enhancer = ImageEnhance.Brightness(self.image)
+        self.image = enhancer.enhance(brightness)
+        return self
+
+    def sharpness(self, sharpness: float):
+        enhancer = ImageEnhance.Sharpness(self.image)
+        self.image = enhancer.enhance(sharpness)
+        return self
+
+    def grayscale(self):
+        self.image = self.image.convert('L')
+        # self.image = ImageOps.grayscale(self.image)   # backup
+        return self
+
+    def _is_grayscale(self):
+        if len(self.image.getbands()) == 1:
+            return True
+
+    def binaryzation(self, threshold: int = 255 - 20):
+        if not self._is_grayscale():
+            self.grayscale()
+        self.image = self.image.point(lambda p: p > threshold and 255)
+        return self
+
+    def invert(self):
+        self.image = ImageOps.invert(self.image)
+        return self
+
+    def rotate(self, angle: float, expand: bool = True):
+        self.image = self.image.rotate(angle, expand=expand)
+        return self
+
+    def save(self):
+        self.image.save(self.save_path)
+        return self.save_path
+
+    def get_image(self):
+        return self.image
+
+    def get_ndarray(self):
+        return np.array(self.image)
+
+    def get_bytesio(self, format: str = 'PNG'):
+        bytesio = BytesIO()
+        self.image.save(bytesio, format=format)
+        return bytesio
+
+
 if __name__ == '__main__':
-    print(polygon_bounding_rect([[184.0, 203.0], [202.0, 186.0], [219.0, 203.0], [202.0, 220.0]]))
+    path = r'C:\Users\ocg20\Desktop\IMG_20220724_162804.jpg'
+    imgp = ImageProcess(path)
+    bio = imgp.get_bytesio()
+    image = Image.open(bio)
+    image.show()

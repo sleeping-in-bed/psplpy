@@ -1,16 +1,12 @@
+import inspect
 import multiprocessing
 import os
 import shutil
 import time
 import fitz
 import psutil
-from PIL import Image, ImageEnhance
 
-import data_process
-import file_util
-import image_util
-import interact_util
-import ocr_util
+import data_process, file_util, image_util, interact_util, ocr_util
 
 
 class PDFProcessor:
@@ -39,6 +35,7 @@ class PDFOCR:
 
     def __init__(self, pdf_path: str, ocr: ocr_util.PyOcr, number_of_processing: int = 1, save_path: str = None,
                  skip_page_set: set = None, auto_skip: bool = False, render_page_to_image: bool = False,
+                 image_processor: str = None,
                  temp_dir: str = file_util.base_dir(__file__, 'temp'), show_process: bool = True, debug: bool = False):
         self.pdf_path = pdf_path
         self.ocr = ocr
@@ -47,14 +44,20 @@ class PDFOCR:
         self.skip_page_set = skip_page_set or set()
         self.auto_skip = auto_skip
         self.render_page_to_image = render_page_to_image
+        self.image_processor = image_processor
         self.temp_dir = file_util.create_dir(temp_dir)
         self.show_process = show_process
         self.debug = debug
 
+        self.kwargs = {'pdf_path': self.pdf_path, 'number_of_processing': self.number_of_processing,
+                       'auto_skip': auto_skip, 'render_page_to_image': self.render_page_to_image,
+                       'image_processor': image_processor, 'temp_dir': self.temp_dir, 'show_process': self.show_process,
+                       'debug': self.debug, 'dpi': self.dpi}
+
         self._check_system_state()
 
         self.pdf = fitz.open(self.pdf_path, filetype='pdf')
-        self.pages_image = self._extract_images()
+        self.pages_image = self.get_page_image()
         self.new_pdf_list = []
         self.all_text_info_dict = {}
 
@@ -77,55 +80,79 @@ class PDFOCR:
             elif choose == '3':
                 self.number_of_processing = recommend_number_of_process
 
-    def _get_pix(self, image):
-        xref = image[0]  # get the XREF of the image
-        pix = fitz.Pixmap(self.pdf, xref)  # create a Pixmap
-        if pix.n - pix.alpha > 3:  # CMYK: convert to RGB first
-            pix = fitz.Pixmap(fitz.csRGB, pix)
-        return pix
+    @staticmethod
+    def _multiprocess(p_num, target, args_list=None, kwargs_list=None):
+        p_list = []
+        args_list = args_list or [() for _ in range(p_num)]
+        kwargs_list = kwargs_list or [{} for _ in range(p_num)]
+        for i in range(p_num):
+            p = multiprocessing.Process(target=target, args=args_list[i], kwargs=kwargs_list[i])
+            p_list.append(p)
+        for p in p_list:
+            p.start()
+        for p in p_list:
+            p.join()
 
-    def _get_image_path(self, image, page_index, suffix='') -> str:
-        pix = self._get_pix(image)
-        image_name = f'{os.path.splitext(os.path.basename(self.pdf_path))[0]}{page_index}{suffix}.png'
-        image_path = os.path.join(self.temp_dir, image_name)
-        pix.save(image_path)
-        return image_path
+    @staticmethod
+    def _get_page_image(page_list, image_dict, **kwargs):
+        def _get_pix(image):
+            xref = image[0]  # get the XREF of the image
+            pix = fitz.Pixmap(pdf, xref)  # create a Pixmap
+            if pix.n - pix.alpha > 3:  # CMYK: convert to RGB first
+                pix = fitz.Pixmap(fitz.csRGB, pix)
+            return pix
 
-    def _extract_images(self) -> dict:
-        if self.show_process: print('正在获取每页图片')
-        pages_image = {}
-        for page_index in range(len(self.pdf)):  # iterate over pdf pages
-            if self.show_process: interact_util.overlay_print(f'进度: {page_index}/{len(self.pdf)}')
-            if page_index in self.skip_page_set:
-                print(f'\nSkip: {page_index}')
-            else:
-                page = self.pdf[page_index]  # get the page
-                if not self.render_page_to_image:
-                    image_list = page.get_images()
-                    if len(image_list) > 1:  # 每页图片不止一个，说明不是纯扫描图pdf
-                        for index, image in enumerate(image_list):
-                            image_path = self._get_image_path(image, page_index, suffix=f'_{index}')
-                        info = f'Page {page_index} has {len(image_list)} images, not equals one.' + \
-                               f'Please check this directory: {os.path.dirname(image_path)}'
-                        if self.auto_skip:
-                            self.skip_page_set.add(page_index)
-                            print('\n' + info)
-                        else:
-                            raise ValueError(info)
-                    elif len(image_list) < 1:
-                        raise ValueError(f'No image in page {page_index}.')
+        def _get_image_path(image, page_index, suffix='') -> str:
+            pix = _get_pix(image)
+            image_name = f'{os.path.splitext(os.path.basename(kwargs["pdf_path"]))[0]}{page_index}{suffix}.png'
+            image_path = os.path.join(kwargs['temp_dir'], image_name)
+            pix.save(image_path)
+            return image_path
+
+        pdf = fitz.open(kwargs['pdf_path'], filetype='pdf')
+        for page_index in page_list:
+            page = pdf[page_index]  # get the page
+            if not kwargs['render_page_to_image']:
+                image_list = page.get_images()
+                if len(image_list) > 1:  # 每页图片不止一个，说明不是纯扫描图pdf
+                    for index, image in enumerate(image_list):
+                        image_path = _get_image_path(image, page_index, suffix=f'_{index}')
+                    info = f'Page {page_index} has {len(image_list)} images, not equals one.' + \
+                           f'Please check this directory: {os.path.dirname(image_path)}'
+                    if kwargs['auto_skip']:
+                        print('\n' + info)
                     else:
-                        image_path = self._get_image_path(image_list[0], page_index)
-                        pages_image[page_index] = image_path
+                        raise ValueError(info)
+                elif len(image_list) < 1:
+                    raise ValueError(f'No image in page {page_index}.')
                 else:
-                    pix = page.get_pixmap(dpi=self.dpi)  # render page to an image
-                    image_name = f'{os.path.splitext(os.path.basename(self.pdf_path))[0]}{page_index}.png'
-                    image_path = os.path.join(self.temp_dir, image_name)
-                    pix.save(image_path)  # store image as a PNG
-                    pages_image[page_index] = image_path
+                    image_path = _get_image_path(image_list[0], page_index)
+                    image_dict[page_index] = image_path
+            else:
+                pix = page.get_pixmap(dpi=kwargs['dpi'])  # render page to an image
+                image_name = f'{os.path.splitext(os.path.basename(kwargs["pdf_path"]))[0]}{page_index}.png'
+                image_path = os.path.join(kwargs['temp_dir'], image_name)
+                pix.save(image_path)  # store image as a PNG
+                image_dict[page_index] = image_path
+            if kwargs['show_process']:
+                print(f'图像获取进度：{kwargs["count"].value}/{kwargs["sum"]}，'
+                      f'已用时间：{time.perf_counter() - kwargs["very_start"]:.1f}s')
+                kwargs["count"].value += 1
 
-        if self.show_process: print()
-        return pages_image
+    def get_page_image(self):
+        if self.show_process: print('正在获取每页图片')
+        very_start = time.perf_counter()
+        p_num = self.number_of_processing
+        page_list = [index for index in range(len(self.pdf)) if index not in self.skip_page_set]
+        page_lists = data_process.split_list(page_list, p_num)
+        image_dict = multiprocessing.Manager().dict()
+        count = multiprocessing.Value("i", 0)
+
+        self._multiprocess(p_num, self._get_page_image, args_list=[(page_lists[i], image_dict) for i in range(p_num)],
+                           kwargs_list=[{'count': count, 'sum': len(page_list), 'very_start': very_start,
+                                         **self.kwargs} for _ in range(p_num)])
+
+        return dict(sorted(image_dict.items()))   # 多进程的字典键序是乱的，排一下序
 
     def _get_all_text_info(self) -> None:
         server_address = ('127.0.0.1', 12345)
@@ -150,51 +177,26 @@ class PDFOCR:
         if self.show_process: print(f'OCR完成，总计用时: {time.perf_counter() - very_start:.1f}s')
 
     @staticmethod
-    def image_process(image_list: list, count, resize_ratio: float = 2, save_resize_ratio: float = 0.25,
-                      contrast: float = 1.5,
-                      brightness: float = 1.75, sharpness: float = 0.5, pure_black: bool = True, color_diff: int = 10):
+    def _image_process(image_list, **kwargs):
         for image_path in image_list:
-            image = Image.open(image_path)
-            image = image.resize((int(image.width * resize_ratio), int(image.height * resize_ratio)))
-            # 提高图像对比度
-            enhancer = ImageEnhance.Contrast(image)
-            image = enhancer.enhance(contrast)
-            # 提高图像亮度
-            enhancer = ImageEnhance.Brightness(image)
-            image = enhancer.enhance(brightness)
-            # 提高图像锐度
-            enhancer = ImageEnhance.Sharpness(image)
-            image = enhancer.enhance(sharpness)
+            eval(f'{kwargs["image_processor"]}(r"{image_path}")')
+        if kwargs['show_process']:
+            print(f'图像处理进度：{kwargs["count"].value}/{kwargs["sum"]}，'
+                  f'已用时间：{time.perf_counter() - kwargs["very_start"]:.1f}s')
+            kwargs["count"].value += 1
 
-            if pure_black:
-                # 将图片转换为灰度图
-                image = image.convert('L')
-                # 获得像素点的颜色数据
-                pixels = image.load()
-
-                differ = 255 - color_diff
-                for i in range(image.width):
-                    for j in range(image.height):
-                        if differ <= pixels[i, j] <= 255:
-                            pixels[i, j] = 255
-                        else:
-                            pixels[i, j] = 0
-            image = image.resize((int(image.width * save_resize_ratio), int(image.height * save_resize_ratio)))
-            image.save(image_path)
-            print(f'{count.value}')
-            count.value += 1
+    def image_process(self):
+        very_start = time.perf_counter()
+        p_num = self.number_of_processing
+        image_lists = data_process.split_list(list(self.pages_image.values()), p_num)
+        count = multiprocessing.Value("i", 0)
+        self._multiprocess(p_num, self._image_process, [(image_lists[i],) for i in range(p_num)],
+                           [{'count': count, 'sum': len(self.pages_image), 'very_start': very_start,
+                             **self.kwargs} for _ in range(p_num)])
 
     def ocr_pdf(self):
-        p_list = []
-        image_lists = data_process.split_list(list(self.pages_image.values()), self.number_of_processing)
-        count = multiprocessing.Value("i", 0)
-        for i in range(self.number_of_processing):
-            p = multiprocessing.Process(target=self.image_process, args=(image_lists[i], count))
-            p_list.append(p)
-            p.start()
-        for p in p_list:
-            p.join()
-
+        if self.image_processor:
+            self.image_process()
         self._get_all_text_info()
         if self.show_process: print('正在将OCR结果写入pdf')
         for index in range(len(self.pdf)):
@@ -218,7 +220,7 @@ class PDFOCR:
             self.new_pdf_list.append(doc_path)
         self.merge_pdfs()
         if not self.debug:
-            shutil.rmtree(self.temp_dir)    # 移除临时目录
+            shutil.rmtree(self.temp_dir)  # 移除临时目录
         return self.save_path
 
     def merge_pdfs(self):
@@ -261,7 +263,7 @@ class PDFOCR:
                         # 实际在pdf中写入文本
                         shape.insert_textbox(rect, text_info[1], color=(0, 0, 0), fontsize=font_size,
                                              fontname='none', fontfile='C:\\Windows\\Fonts\\simsun.ttc',
-                                             align=fitz.TEXT_ALIGN_JUSTIFY)
+                                             align=fitz.TEXT_ALIGN_RIGHT)
                         wrote_text_list.append([text_info, font_size])
                         break
                 else:  # 如果字体过大，会返回不大于0的数，需要调小字体
@@ -277,10 +279,14 @@ class PDFOCR:
 
 
 if __name__ == '__main__':
-    path = r'D:\WorkSpaceW\电子书架\EbooksLib\JavaScript权威指南（原书第7版）_ [美] David Flanagan  李松峰_19244750_zhelper-search.pdf'
+    path = r'D:\WorkSpaceW\电子书架\EbooksLib\HTML5权威指南 (Adam Freeman) _扫描版.pdf'
     # pdf_processor = PDFProcessor(path)
-    # pdf_processor.select([i for i in range(10)])
+    # pdf_processor.select([i for i in range(119, 120)])
     # path = pdf_processor.save()
 
-    a = PDFOCR(path, ocr_util.PyOcr(), number_of_processing=6, render_page_to_image=True)
+    image_processor = (lambda image_path: (image_util.ImageProcess(image_path).resize(2).contrast(1.5).
+        brightness(1.5).sharpness(0.5).binaryzation(255 - 20).resize(0.25).save()))
+    image_processor = inspect.getsource(image_processor).split('=')[1][:-1]
+    a = PDFOCR(path, ocr_util.PyOcr(), number_of_processing=8, render_page_to_image=True,
+)
     print(a.ocr_pdf())

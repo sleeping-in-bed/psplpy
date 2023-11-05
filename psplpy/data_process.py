@@ -54,8 +54,11 @@ def find_list_duplicates(lst: list) -> dict:
     return result
 
 
-def sorted_dict_according_to_value(dic: dict, reversed: bool = False) -> dict:
+def sort_dict_by_val(dic: dict, reversed: bool = False) -> dict:
     return dict(sorted(dic.items(), key=lambda item: item[1]), reversed=reversed)
+
+def sort_dict_by_key(dic: dict, reversed: bool = False) -> dict:
+    return dict(sorted(dic.items()), reversed=reversed)
 
 
 def split_list(input_list: list, num_chunks: int) -> list[list]:

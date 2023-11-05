@@ -93,3 +93,10 @@ class ServerSocket:
             args = []
         client_handler = threading.Thread(target=func, args=(client_socket, *list(args)), kwargs=kwargs)
         client_handler.start()
+
+
+if __name__ == '__main__':
+    server_socket = ServerSocket()
+    client_socket, addr = server_socket.accept()
+    print(client_socket.recv())
+    client_socket.close()

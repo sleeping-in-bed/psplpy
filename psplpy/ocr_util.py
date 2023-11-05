@@ -22,7 +22,7 @@ def keep_only_english_and_num(text: str) -> str:
 
 
 class PyOcr:
-    paddle_ocr = 'PaddleOCR'
+    paddle_ocr = 'paddleocr'
     easy_ocr = 'easyocr'
     dddd_ocr = 'ddddocr'
 
@@ -44,11 +44,11 @@ class PyOcr:
         else:
             self.log_path = log_path
         time_start = time.perf_counter()
-        if self.detect_module == 'paddleocr':
+        if self.detect_module == self.paddle_ocr:
             os.environ['KMP_DUPLICATE_LIB_OK'] = 'TRUE'
             from paddleocr import PaddleOCR
             self.ocr = PaddleOCR(use_angle_cls=True, use_gpu=use_gpu, show_log=False)
-        elif self.detect_module == 'easyocr':
+        elif self.detect_module == self.easy_ocr:
             import easyocr
             if lang.casefold() in ['chs', 'ch_sim']:
                 self.ocr = easyocr.Reader(['ch_sim', 'en'])  # need to run only once to load model into memory
@@ -56,7 +56,7 @@ class PyOcr:
                 self.ocr = easyocr.Reader(['en'])
             else:
                 self.ocr = easyocr.Reader([lang])
-        elif self.detect_module == 'ddddocr':
+        elif self.detect_module == self.dddd_ocr:
             import ddddocr
             self.ocr = ddddocr.DdddOcr(show_ad=False)
         else:
@@ -85,27 +85,35 @@ class PyOcr:
         else:
             raise ValueError
 
+    def unify_format(self, text_info_list: list):
+        """format text info list to: ([left top][right top][right bottom][left bottom]], text, confidence)
+           for instance:             ([[459, 5], [869, 5], [869, 19], [459, 19]], '1', 0.0004511636577615576)"""
+        unified_text_info_list = []
+        if self.detect_module == PyOcr.paddle_ocr:
+            text_info_list = text_info_list[0]
+            if text_info_list is not None:     # 如果未检测到，会返回 [None]
+                for i in range(0, len(text_info_list)):
+                    temp_list = [text_info_list[i][0], text_info_list[i][1][0], text_info_list[i][1][1]]
+                    unified_text_info_list.append(temp_list)
+        elif self.detect_module == PyOcr.easy_ocr:
+            unified_text_info_list = text_info_list
+        return unified_text_info_list
+
     def get_text_info_list(self, image: Any = None, ignore_case: bool = False,
                            keep_only_en_and_num: bool = False, image_enlarge: float = 1,
                            rect_mode: str = ltrtrblt) -> list[list[str | Any]] | list[list[Any]] | list:
         time_start = time.perf_counter()
         if not image:
-            image = 0, 0, *pyautogui.size()
+            image = image_util.get_screen_box()
         image_array = PyOcr._transform_image(image)
         if image_enlarge != 1:
-            image_array = image_util.enlarge_img(image_array, image_enlarge)
+            image_array = image_util.ImageProcess(image_array).resize(image_enlarge).get_ndarray()
 
-        text_info_list = []
-        if self.detect_module == 'paddleocr':
-            text = self.ocr.ocr(image_array, cls=True)
-            # format text info list to: ([left top][right top][right bottom][left bottom]], text, confidence)
-            # for instance:             ([[459, 5], [869, 5], [869, 19], [459, 19]], '1', 0.0004511636577615576)
-            for i in range(0, len(text[0])):
-                temp_list = [text[0][i][0], text[0][i][1][0], text[0][i][1][1]]
-                text_info_list.append(temp_list)
-        elif self.detect_module == 'easyocr':  # similar with PaddleOCR
-            text_info_list = self.ocr.readtext(image_array, detail=1)
-        elif self.detect_module in ['ddddocr']:
+        if self.detect_module == self.paddle_ocr:
+            text_info_list = self.unify_format(self.ocr.ocr(image_array, cls=True))
+        elif self.detect_module == self.easy_ocr:  # similar with PaddleOCR
+            text_info_list = self.unify_format(self.ocr.readtext(image_array, detail=1))
+        elif self.detect_module in [self.dddd_ocr]:
             raise ValueError(f'{self.detect_module} not support this function')
         else:
             raise ValueError(f'Module {self.detect_module} not exist')
@@ -154,6 +162,25 @@ class PyOcr:
         else:
             raise ValueError(f'Module {self.detect_module} not exist')
         return result
+
+
+class AutoOcr:
+    def __init__(self, ocr: PyOcr):
+        self.ocr = ocr
+        self.default_region = image_util.get_screen_box()
+
+    def _process_case_and_en(self, text_list, ignore_case, keep_only_en_and_num):
+        if ignore_case:
+            text_list = [text.casefold() for text in text_list]
+        if keep_only_en_and_num:
+            text_list = [keep_only_english_and_num(text) for text in text_list]
+        return text_list
+
+
+
+    def detect(self, text_list: list = None, image_list: list = None, region: tuple = None, confidence: float = 1,
+               mode: tuple = ('and', 'or'), ignore_case: bool = True, keep_only_en_and_num: bool = True) -> bool:
+        text_list = self._process_case_and_en(text_list, ignore_case, keep_only_en_and_num)
 
 
 class PyOcrClient:
@@ -257,7 +284,7 @@ if __name__ == '__main__':
     choose = input('input\n')
     if choose == '1':
         ocr = PyOcr(debug=True, use_gpu=False)
-        l = ocr.get_text_info_list()
+        l = ocr.get_text_info_list(r'C:\Users\ocg20\Desktop\20231105014939.png')
         print(l)
     elif choose == '2':
         server_address = ('127.0.0.1', 12345)
